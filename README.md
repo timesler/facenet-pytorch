@@ -39,6 +39,8 @@ By default, the above models will return 512-dimensional embeddings of images. T
 
 See: [models/tensorflow2pytorch.py](models/tensorflow2pytorch.py)
 
+Note that this functionality is not needed to use the models in this repo, which depend only on the saved pytorch `state_dict`'s. 
+
 Following instantiation of the pytorch model, each layer's weights were loaded from equivalent layers in the pretrained tensorflow models from [davidsandberg/facenet](https://github.com/davidsandberg/facenet).
 
 The equivalence of the outputs from the original tensorflow models and the pytorch-ported models have been tested and are identical:
