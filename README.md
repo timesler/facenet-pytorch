@@ -1,4 +1,4 @@
-# facenet-pytorch
+# Face Recognition Using Pytorch
 
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
 
@@ -10,12 +10,12 @@ See: [models/inception_resnet_v1.py](models/inception_resnet_v1.py)
 
 The following models have been ported to pytorch (with links to download pytorch `state_dict`'s):
 
-|Model name|LFW accuracy|Training dataset|
+|Model name|LFW accuracy (listed [here](https://github.com/davidsandberg/facenet))|Training dataset|
 |-|-|-|
-|[20180408-102900](https://drive.google.com/uc?export=download&id=1eyCFwxr-0-hyEOdlicD2GISZEWjkWWoa)|0.9905|CASIA-WebFace|
-|[20180402-114759](https://drive.google.com/uc?export=download&id=1mN0I8JWpzJ48TrrWFx8jBARwRgk3n6lk)|0.9965|VGGFace2|
+|[20180408-102900](https://drive.google.com/uc?export=download&id=12DYdlLesBl3Kk51EtJsyPS8qA7fErWDX) (111MB)|0.9905|CASIA-Webface|
+|[20180402-114759](https://drive.google.com/uc?export=download&id=1TDZVEBudGaEd5POR5X4ZsMvdsh1h68T1) (107MB)|0.9965|VGGFace2|
 
-To use an Inception Resnet (V1) model for facial recognition/detection, use:
+To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```
 from models.inception_resnet_v1 import InceptionResNetV1
@@ -28,9 +28,12 @@ model = InceptionResNetV1(pretrained='casia-webface')
 
 # For an untrained model
 model = InceptionResNetV1()
+
+# For an untrained 1001-class classifier
+model = InceptionResNetV1(classify=True, num_classes=1001)
 ```
 
-By default, the above models will return 512-dimensional embeddings of images. To enable classification, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`.
+By default, the above models will return 512-dimensional embeddings of images. To enable classification instead, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`. For VGGFace2, the pretrained model will output probability vectors of length 8631, and for CASIA-Webface probability vectors of length 10575.
 
 ## Conversion of parameters from Tensorflow to Pytorch
 
@@ -63,6 +66,12 @@ tensor([[-0.0142,  0.0615,  0.0057,  ...,  0.0497,  0.0375, -0.0838],
 Distance 1.2874517096861382e-06
 ```
 ---
+
+## References
+
+Q. Cao, L. Shen, W. Xie, O. M. Parkhi, A. Zisserman. _VGGFace2: A dataset for recognising face across pose and age_, International Conference on Automatic Face and Gesture Recognition, 2018. [PDF](http://www.robots.ox.ac.uk/~vgg/publications/2018/Cao18/cao18.pdf)
+
+D. Yi, Z. Lei, S. Liao and S. Z. Li. _CASIAWebface: Learning Face Representation from Scratch_, arXiv:1411.7923v1, 2014. [PDF](https://arxiv.org/pdf/1411.7923)
 
 ## To-do
 
