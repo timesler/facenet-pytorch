@@ -31,7 +31,7 @@ class BasicConv2d(nn.Module):
 
 
 class Block35(nn.Module):
-
+    
     def __init__(self, scale=1.0):
         super().__init__()
 
@@ -179,8 +179,18 @@ class Mixed_7a(nn.Module):
 
 
 class InceptionResNetV1(nn.Module):
+    """Inception Resnet V1 model with optional loading of pretrained weights.
 
-    def __init__(self, pretrained=None, classify=False, num_classes=None):
+    Model parameters can be loaded based on pretraining on the VGGFace2 or CASIA-Webface
+    datasets.
+    
+    Keyword Arguments:
+        pretrained {str} -- Pretraining dataset. Either 'vggface2' or 'casia-webface'. (default: {None})
+        classify {bool} -- Whether the model should output classification probabilities or feature.
+            embeddings (default: {False})
+        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set. (default: {1001})
+    """
+    def __init__(self, pretrained=None, classify=False, num_classes=1001):
         super().__init__()
 
         # Set simple attributes
@@ -234,7 +244,7 @@ class InceptionResNetV1(nn.Module):
         self.last_linear = nn.Linear(1792, 512, bias=False)
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
 
-        self.logits = nn.Linear(512, num_classes)
+        self.logits = nn.Linear(512, self.num_classes)
         self.softmax = nn.Softmax()
 
         if pretrained is not None:
@@ -265,16 +275,36 @@ class InceptionResNetV1(nn.Module):
 
 
 def load_weights(mdl, name):
+    """Download pretrained state_dict and load into model.
+    
+    Arguments:
+        mdl {torch.nn.Module} -- Pytorch model.
+        name {str} -- Name of dataset that was used to generate pretrained state_dict.
+    
+    Raises:
+        ValueError: If 'pretrained' not equal to 'vggface2' or 'casia-webface'.
+    """
     if name == 'vggface2':
-        path = 'https://drive.google.com/uc?export=download&id=1eyCFwxr-0-hyEOdlicD2GISZEWjkWWoa'
+        features_path = 'https://drive.google.com/uc?export=download&id=1cWLH_hPns8kSfMz9kKl9PsG5aNV2VSMn'
+        logits_path = 'https://drive.google.com/uc?export=download&id=1mAie3nzZeno9UIzFXvmVZrDG3kwML46X'
     elif name == 'casia-webface':
-        path = 'https://drive.google.com/uc?export=download&id=1mN0I8JWpzJ48TrrWFx8jBARwRgk3n6lk'
+        features_path = 'https://drive.google.com/uc?export=download&id=1LSHHee_IQj5W3vjBcRyVaALv4py1XaGy'
+        logits_path = 'https://drive.google.com/uc?export=download&id=1QrhPgn1bGlDxAil2uc07ctunCQoDnCzT'
     else:
         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
     
-    r = requests.get(path, allow_redirects=True)
-    with tempfile.TemporaryFile() as f:
-        f.write(r.content)
-        f.seek(0, 0)
-        state_dict = torch.load(f)
+    state_dict = {}
+    for i, path in enumerate([features_path, logits_path]):
+        for t in range(10):
+            try:
+                print(f'\rDownloading parameters ({i+1}/2), attempt {t+1}', end='')
+                r = requests.get(path, allow_redirects=True)
+                with tempfile.TemporaryFile() as f:
+                    f.write(r.content)
+                    f.seek(0, 0)
+                    state_dict.update(torch.load(f))
+                break
+            except:
+                pass
+    print('')
     mdl.load_state_dict(state_dict)
