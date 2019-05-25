@@ -15,7 +15,7 @@ The following models have been ported to pytorch (with links to download pytorch
 |[20180408-102900](https://drive.google.com/uc?export=download&id=12DYdlLesBl3Kk51EtJsyPS8qA7fErWDX) (111MB)|0.9905|CASIA-Webface|
 |[20180402-114759](https://drive.google.com/uc?export=download&id=1TDZVEBudGaEd5POR5X4ZsMvdsh1h68T1) (107MB)|0.9965|VGGFace2|
 
-To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
+There is no need to manually download the pretrained `state_dict`'s; they are downloaded automatically on model instantiation. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```
 from models.inception_resnet_v1 import InceptionResNetV1
