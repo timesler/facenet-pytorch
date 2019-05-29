@@ -3,10 +3,9 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 from models.mtcnn import MTCNN
-from models.inception_resnet_v1 import InceptionResNetV1
+from models.inception_resnet_v1 import InceptionResnetV1
 
 # Define MTCNN module
 # Default params shown for illustration, but not needed
@@ -17,7 +16,7 @@ mtcnn = MTCNN(
 
 # Define Inception Resnet V1 module
 # Set classify=True for pretrained classifier
-resnet = InceptionResNetV1(pretrained='vggface2').eval()
+resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 # Define a dataset and data loader
 trans = transforms.Compose([
@@ -33,7 +32,7 @@ loader = DataLoader(dataset)
 # Perfom MTCNN facial detection
 aligned = []
 names = []
-for x, y in tqdm(loader):
+for x, y in loader:
     x_aligned = mtcnn(x[0])
     aligned.append(x_aligned)
     names.append(dataset.idx_to_class[y[0].item()])

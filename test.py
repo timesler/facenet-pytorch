@@ -7,7 +7,7 @@ import pandas as pd
 from time import time
 
 from models.mtcnn import MTCNN
-from models.inception_resnet_v1 import InceptionResNetV1
+from models.inception_resnet_v1 import InceptionResnetV1
 
 trans = transforms.Compose([
     transforms.Resize(512),
@@ -23,7 +23,7 @@ def get_image(path, trans):
 
 
 mtcnn_pt = MTCNN()
-resnet_pt = InceptionResNetV1(pretrained='vggface2').eval()
+resnet_pt = InceptionResnetV1(pretrained='vggface2').eval()
 
 names = ['bradley_cooper', 'shea_whigham', 'paul_rudd', 'kate_siegel', 'angelina_jolie']
 aligned = []

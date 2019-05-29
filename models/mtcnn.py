@@ -7,10 +7,15 @@ import os
 from PIL import Image
 import tensorflow as tf
 
-from dependencies.utils.detect_face import detect_face
+from .utils.detect_face import detect_face
 
 
 class PNet(nn.Module):
+    """MTCNN PNet.
+    
+    Keyword Arguments:
+        pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
+    """
 
     def __init__(self, pretrained=True):
         super().__init__()
@@ -54,6 +59,11 @@ class PNet(nn.Module):
 
 
 class RNet(nn.Module):
+    """MTCNN RNet.
+    
+    Keyword Arguments:
+        pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
+    """
 
     def __init__(self, pretrained=True):
         super().__init__()
@@ -104,6 +114,11 @@ class RNet(nn.Module):
 
 
 class ONet(nn.Module):
+    """MTCNN ONet.
+    
+    Keyword Arguments:
+        pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
+    """
 
     def __init__(self, pretrained=True):
         super().__init__()
@@ -162,6 +177,23 @@ class ONet(nn.Module):
 
 
 class MTCNN(nn.Module):
+    """Complete MTCNN face detection module.
+
+    This class loads pretrained P-, R-, and O-nets and, given raw input images as tensors,
+    returns images cropped to include the face only. Cropped faces can optionally be saved also.
+    
+    Keyword Arguments:
+        image_size {int} -- Output image size in pixels. The image will be square. (default: {160})
+        margin {int} -- Margin to add to bounding box, in terms of pixels in the original image. (default: {0})
+        min_face_size {int} -- Minimum face size to search for. (default: {20})
+        thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
+        factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
+        prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
+    
+    Returns:
+        Union[torch.Tensor, (torch.tensor, torch.Tensor)]  -- If detected, cropped image of a single face with
+            dimensions 3 x image_size x image_size. Optionally, the probability that a face was detected.
+    """
 
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,

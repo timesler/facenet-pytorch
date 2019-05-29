@@ -177,7 +177,7 @@ class Mixed_7a(nn.Module):
         return out
 
 
-class InceptionResNetV1(nn.Module):
+class InceptionResnetV1(nn.Module):
     """Inception Resnet V1 model with optional loading of pretrained weights.
 
     Model parameters can be loaded based on pretraining on the VGGFace2 or CASIA-Webface

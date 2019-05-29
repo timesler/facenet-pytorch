@@ -20,19 +20,19 @@ The following models have been ported to pytorch (with links to download pytorch
 There is no need to manually download the pretrained `state_dict`'s; they are downloaded automatically on model instantiation. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```
-from models.inception_resnet_v1 import InceptionResNetV1
+from models.inception_resnet_v1 import InceptionResnetV1
 
 # For a model pretrained on VGGFace2
-model = InceptionResNetV1(pretrained='vggface2')
+model = InceptionResnetV1(pretrained='vggface2').eval()
 
 # For a model pretrained on CASIA-Webface
-model = InceptionResNetV1(pretrained='casia-webface')
+model = InceptionResnetV1(pretrained='casia-webface').eval()
 
 # For an untrained model
-model = InceptionResNetV1()
+model = InceptionResnetV1().eval()
 
 # For an untrained 1001-class classifier
-model = InceptionResNetV1(classify=True, num_classes=1001)
+model = InceptionResnetV1(classify=True, num_classes=1001).eval()
 ```
 
 By default, the above models will return 512-dimensional embeddings of images. To enable classification instead, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`. For VGGFace2, the pretrained model will output probability vectors of length 8631, and for CASIA-Webface probability vectors of length 10575.
@@ -49,7 +49,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 from models.mtcnn import MTCNN
 from models.inception_resnet_v1 import InceptionResNetV1
@@ -92,6 +91,21 @@ embeddings = resnet(aligned)
 dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
 print(pd.DataFrame(dists, columns=names, index=names))
 
+```
+
+## Use this repo in your own project
+
+To use pretrained MTCNN and Inception Resnet V1 models in your own project, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
+
+`git submodule add https://github.com/timesler/facenet-pytorch.git facenet_pytorch`
+
+Models can then be instantiated simply with the following:
+
+```
+import facenet_pytorch as fp
+
+mtcnn = fp.MTCNN()
+resnet = fp.InceptionResnetV1(pretrained='vggface2').eval()
 ```
 
 ## Conversion of parameters from Tensorflow to Pytorch
