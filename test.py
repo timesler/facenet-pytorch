@@ -31,7 +31,7 @@ for name in names:
 
     start = time()
     img_align = mtcnn_pt(img, save_path='data/test_images_aligned/{}/1.jpg'.format(name))
-    print(f'MTCNN time: {time() - start:6f} seconds')
+    print('MTCNN time: {:6f} seconds'.format(time() - start))
     aligned.append(img_align)
 
 aligned = torch.stack(aligned)
