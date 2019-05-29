@@ -23,7 +23,7 @@ The following models have been ported to pytorch (with links to download pytorch
 
 There is no need to manually download the pretrained `state_dict`'s; they are downloaded automatically on model instantiation. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
-```
+```python
 from models.inception_resnet_v1 import InceptionResnetV1
 
 # For a model pretrained on VGGFace2
@@ -47,7 +47,7 @@ Face recognition can be easily applied to raw images by first detecting faces us
 
 Note that for real-world datasets, the below code should be modified to control batch sizes being passed to the Resnet. 
 
-```
+```python
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
@@ -105,7 +105,7 @@ To use pretrained MTCNN and Inception Resnet V1 models in your own project, I re
 
 Models can then be instantiated simply with the following:
 
-```
+```python
 import facenet_pytorch as fp
 
 mtcnn = fp.MTCNN()
