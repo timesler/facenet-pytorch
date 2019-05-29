@@ -3,11 +3,11 @@ import torch
 import json
 import os, sys
 
-from dependencies.facenet.src import facenet
-from dependencies.facenet.src.models import inception_resnet_v1 as tf_mdl
-from dependencies.facenet.src.align import detect_face
+from .dependencies.facenet.src import facenet
+from .dependencies.facenet.src.models import inception_resnet_v1 as tf_mdl
+from .dependencies.facenet.src.align import detect_face
 
-from models.inception_resnet_v1 import InceptionResNetV1
+from models.inception_resnet_v1 import InceptionResnetV1
 from models.mtcnn import PNet, RNet, ONet
 
 
@@ -299,7 +299,7 @@ def tensorflow2pytorch():
     }
 
     print('\nLoad VGGFace2-trained weights and save\n')
-    mdl = InceptionResNetV1(num_classes=8631).eval()
+    mdl = InceptionResnetV1(num_classes=8631).eval()
     tf_mdl_dir = 'data/20180402-114759'
     data_name = 'vggface2'
     load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
@@ -317,7 +317,7 @@ def tensorflow2pytorch():
     torch.save(state_dict, f'{tf_mdl_dir}-{data_name}-features.pt')
     
     print('\nLoad CASIA-Webface-trained weights and save\n')
-    mdl = InceptionResNetV1(num_classes=10575).eval()
+    mdl = InceptionResnetV1(num_classes=10575).eval()
     tf_mdl_dir = 'data/20180408-102900'
     data_name = 'casia-webface'
     load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
