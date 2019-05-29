@@ -4,7 +4,7 @@ This is a repository for Inception Resnet (V1) models in pytorch, pretrained on 
 
 Pytorch model weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
 
-Included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference with inception resnet models. 
+Included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference with Inception Resnet models. Theses models are also pretrained. 
 
 ## Pretrained models
 
@@ -39,9 +39,58 @@ By default, the above models will return 512-dimensional embeddings of images. T
 
 ## Complete detection and recognition pipeline
 
-Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model:
+Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model. 
+
+Note that for real-world datasets, the below code should be modified to control batch sizes being passed to the Resnet. 
 
 ```
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms, datasets
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+
+from models.mtcnn import MTCNN
+from models.inception_resnet_v1 import InceptionResNetV1
+
+# Define MTCNN module
+# Default params shown for illustration, but not needed
+mtcnn = MTCNN(
+    image_size=160, margin=0, min_face_size=20,
+    thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True
+)
+
+# Define Inception Resnet V1 module
+# Set classify=True for pretrained classifier
+resnet = InceptionResNetV1(pretrained='vggface2').eval()
+
+# Define a dataset and data loader
+trans = transforms.Compose([
+    transforms.Resize(512),
+    np.int_,
+    transforms.ToTensor(),
+    torch.Tensor.byte
+])
+dataset = datasets.ImageFolder('data/test_images', transform=trans)
+dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
+loader = DataLoader(dataset)
+
+# Perform MTCNN facial detection
+aligned = []
+names = []
+for x, y in loader:
+    x_aligned = mtcnn(x[0])
+    aligned.append(x_aligned)
+    names.append(dataset.idx_to_class[y[0].item()])
+
+# Calculate image embeddings
+aligned = torch.stack(aligned)
+embeddings = resnet(aligned)
+
+# Print distance matrix for classes
+dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
+print(pd.DataFrame(dists, columns=names, index=names))
 
 ```
 
@@ -86,7 +135,3 @@ In order to re-run the conversion of tensorflow parameters into the pytorch mode
 Q. Cao, L. Shen, W. Xie, O. M. Parkhi, A. Zisserman. _VGGFace2: A dataset for recognising face across pose and age_, International Conference on Automatic Face and Gesture Recognition, 2018. [PDF](http://www.robots.ox.ac.uk/~vgg/publications/2018/Cao18/cao18.pdf)
 
 D. Yi, Z. Lei, S. Liao and S. Z. Li. _CASIAWebface: Learning Face Representation from Scratch_, arXiv:1411.7923v1, 2014. [PDF](https://arxiv.org/pdf/1411.7923)
-
-## To-do
-
-- Implement dataset, data loader, and image preprocessing for easy prediction.
