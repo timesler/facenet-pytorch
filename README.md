@@ -2,7 +2,7 @@
 
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
 
-Pytorch Models weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
+Pytorch model weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
 
 ## Pretrained models
 
@@ -15,7 +15,7 @@ The following models have been ported to pytorch (with links to download pytorch
 |[20180408-102900](https://drive.google.com/uc?export=download&id=12DYdlLesBl3Kk51EtJsyPS8qA7fErWDX) (111MB)|0.9905|CASIA-Webface|
 |[20180402-114759](https://drive.google.com/uc?export=download&id=1TDZVEBudGaEd5POR5X4ZsMvdsh1h68T1) (107MB)|0.9965|VGGFace2|
 
-To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
+There is no need to manually download the pretrained `state_dict`'s; they are downloaded automatically on model instantiation. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```
 from models.inception_resnet_v1 import InceptionResNetV1
@@ -38,6 +38,8 @@ By default, the above models will return 512-dimensional embeddings of images. T
 ## Conversion of parameters from Tensorflow to Pytorch
 
 See: [models/tensorflow2pytorch.py](models/tensorflow2pytorch.py)
+
+Note that this functionality is not needed to use the models in this repo, which depend only on the saved pytorch `state_dict`'s. 
 
 Following instantiation of the pytorch model, each layer's weights were loaded from equivalent layers in the pretrained tensorflow models from [davidsandberg/facenet](https://github.com/davidsandberg/facenet).
 
@@ -66,6 +68,8 @@ tensor([[-0.0142,  0.0615,  0.0057,  ...,  0.0497,  0.0375, -0.0838],
 Distance 1.2874517096861382e-06
 ```
 ---
+
+In order to re-run the conversion of tensorflow parameters into the pytorch model, ensure you clone this repo _with submodules_, as the davidsandberg/facenet repo is included as a submodule and parts of it are required for the conversion.
 
 ## References
 
