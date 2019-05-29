@@ -4,6 +4,8 @@ This is a repository for Inception Resnet (V1) models in pytorch, pretrained on 
 
 Pytorch model weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
 
+Included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference with inception resnet models. 
+
 ## Pretrained models
 
 See: [models/inception_resnet_v1.py](models/inception_resnet_v1.py)
@@ -34,6 +36,14 @@ model = InceptionResNetV1(classify=True, num_classes=1001)
 ```
 
 By default, the above models will return 512-dimensional embeddings of images. To enable classification instead, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`. For VGGFace2, the pretrained model will output probability vectors of length 8631, and for CASIA-Webface probability vectors of length 10575.
+
+## Complete detection and recognition pipeline
+
+Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model:
+
+```
+
+```
 
 ## Conversion of parameters from Tensorflow to Pytorch
 
