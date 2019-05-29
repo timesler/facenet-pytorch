@@ -296,7 +296,7 @@ def load_weights(mdl, name):
     for i, path in enumerate([features_path, logits_path]):
         for t in range(10):
             try:
-                print(f'\rDownloading parameters ({i+1}/2), attempt {t+1}', end='')
+                print('\rDownloading parameters ({}/2), attempt {}'.format(i+1, t+1), end='')
                 r = requests.get(path, allow_redirects=True)
                 with tempfile.TemporaryFile() as f:
                     f.write(r.content)
