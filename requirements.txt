@@ -3,4 +3,4 @@ requests==2.21.0
 tensorflow==1.13.1
 torch==1.1.0
 torchvision==0.2.2
-opencv-python==4.1.0
+opencv-python>=4.1.0
