@@ -5,6 +5,6 @@ python:
   - "3.6"
   - "3.7"
 install:
-  - pip install -r requirements.txt
+  - pip install -r tests/requirements.txt
 script:
-  - python test.py
+  - python -c "import tests.test"

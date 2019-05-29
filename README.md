@@ -1,8 +1,8 @@
 # Face Recognition Using Pytorch 
 
 | System | 3.5 | 3.6 | 3.7 |
-| :---: | :---: | :---: | :--: |
-| Linux CPU | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
+| :---: | :---: | :---: | :---: |
+| Linux | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
 
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
 
@@ -114,7 +114,7 @@ resnet = fp.InceptionResnetV1(pretrained='vggface2').eval()
 
 ## Conversion of parameters from Tensorflow to Pytorch
 
-See: [models/tensorflow2pytorch.py](models/tensorflow2pytorch.py)
+See: [models/utils/tensorflow2pytorch.py](models/tensorflow2pytorch.py)
 
 Note that this functionality is not needed to use the models in this repo, which depend only on the saved pytorch `state_dict`'s. 
 
