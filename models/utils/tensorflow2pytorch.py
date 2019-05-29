@@ -3,9 +3,9 @@ import torch
 import json
 import os, sys
 
-from .dependencies.facenet.src import facenet
-from .dependencies.facenet.src.models import inception_resnet_v1 as tf_mdl
-from .dependencies.facenet.src.align import detect_face
+from dependencies.facenet.src import facenet
+from dependencies.facenet.src.models import inception_resnet_v1 as tf_mdl
+from dependencies.facenet.src.align import detect_face
 
 from models.inception_resnet_v1 import InceptionResnetV1
 from models.mtcnn import PNet, RNet, ONet
@@ -399,7 +399,3 @@ def tensorflow2pytorch():
     tf.reset_default_graph()
     with tf.Session() as sess:
         compare_mtcnn(mdl, tf_mdl_dir, sess, 2, torch.randn(1, 48, 48, 3).detach())
-
-
-if __name__ == "__main__":
-    tensorflow2pytorch()
