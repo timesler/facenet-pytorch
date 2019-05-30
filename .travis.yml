@@ -24,12 +24,6 @@ matrix:
     - name: "Python 3.5 on Linux"
       python: 3.5
       dist: xenial
-
-    - name: "Python 3.6 on macOS"
-      os: osx
-      osx_image: xcode9.2
-      language: shell
-      before_install: brew install libomp https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
-
+      
 install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
 script: python3 --version || python --version && python3 -c "import tests.test" || python -c "import tests.test"
