@@ -159,4 +159,4 @@ K. Zhang, Z. Zhang, Z. Li and Y. Qiao. _Joint Face Detection and Alignment Using
 
 ## Todo
 
-* Add CI test for windows and mac
+* Add CI test for windows

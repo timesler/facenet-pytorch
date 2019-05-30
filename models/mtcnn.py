@@ -2,10 +2,7 @@ import torch
 from torch import nn
 import torchvision.transforms.functional as F
 import numpy as np
-from collections import OrderedDict
 import os
-from PIL import Image
-import tensorflow as tf
 
 from .utils.detect_face import detect_face
 
