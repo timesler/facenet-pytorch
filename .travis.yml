@@ -1,10 +1,29 @@
-dist: xenial
 language: python
-python:
-  - "3.5"
-  - "3.6"
-  - "3.7"
-install:
-  - pip install -r tests/requirements.txt
-script:
-  - python -c "import tests.test"
+matrix:
+  include:
+    - name: "Python 3.7 on Linux"
+      python: 3.7
+      dist: xenial
+
+    - name: "Python 3.7 on macOS"
+      os: osx
+      osx_image: xcode10.2
+      language: shell
+      before_install: brew install libomp
+
+    - name: "Python 3.6 on Linux"
+      python: 3.6
+      dist: xenial
+
+    - name: "Python 3.6 on macOS"
+      os: osx
+      osx_image: xcode9.4
+      language: shell
+      before_install: brew install libomp
+
+    - name: "Python 3.5 on Linux"
+      python: 3.5
+      dist: xenial
+      
+install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
+script: python3 --version || python --version && python3 -c "import tests.test" || python -c "import tests.test"
