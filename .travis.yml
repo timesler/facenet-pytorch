@@ -33,5 +33,5 @@ matrix:
       language: shell
       before_install: choco install python --version 3.5.4
       env: PATH=/c/Python35:/c/Python35/Scripts:$PATH
-install: pip3 install --upgrade pip && pip install -r tests/requirements.txt
+install: pip3 install --upgrade pip && pip install -r tests/requirements.txt || pip install --user -r tests/requirements.txt
 script: python --version && python3 -c "import tests.test" || python -c "import tests.test"
