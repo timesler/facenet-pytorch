@@ -14,9 +14,7 @@ matrix:
     - name: "Python 3.7 on Windows"
       os: windows
       language: shell
-      before_install:
-        - choco install python --version 3.7.3
-        - python -m pip install --upgrade pip
+      before_install: choco install python --version 3.7.3
       env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
     - name: "Python 3.6 on Linux"
@@ -32,9 +30,7 @@ matrix:
     - name: "Python 3.6 on Windows"
       os: windows
       language: shell
-      before_install: 
-        - choco install python --version 3.6.7
-        - python -m pip install --upgrade pip
+      before_install: choco install python --version 3.6.7
       env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
 
     - name: "Python 3.5 on Linux"
@@ -44,9 +40,8 @@ matrix:
     - name: "Python 3.5 on Windows"
       os: windows
       language: shell
-      before_install: 
-        - choco install python --version 3.5.4
-        - python -m pip install --upgrade pip
+      before_install: choco install python --version 3.5.4
       env: PATH=/c/Python35:/c/Python35/Scripts:$PATH
-install: pip3 install -r tests/requirements.txt || pip install -r tests/requirements.txt
+      
+install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
 script: python3 --version || python --version && python3 -c "import tests.test" || python -c "import tests.test"

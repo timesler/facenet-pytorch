@@ -6,5 +6,6 @@ https://download.pytorch.org/whl/cpu/torch-1.1.0-cp36-cp36m-win_amd64.whl; sys_p
 https://download.pytorch.org/whl/cpu/torch-1.1.0-cp35-cp35m-win_amd64.whl; sys_platform == 'win32' and python_version == '3.5'
 torch==1.1.0; sys_platform != 'win32'
 torchvision==0.2.2
-opencv-python>=4.1.0
+opencv-python<=3.3.0.9; sys_platform == 'win32'
+opencv-python>=4.1.0; sys_platform != 'win32'
 pandas==0.24.2
