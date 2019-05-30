@@ -1,9 +1,5 @@
-from six import string_types, iteritems
-
 import numpy as np
-import tensorflow as tf
 import cv2
-import os
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
