@@ -11,12 +11,6 @@ matrix:
       language: shell
       before_install: brew install libomp
 
-    - name: "Python 3.7 on Windows"
-      os: windows
-      language: shell
-      before_install: choco install python --version 3.7.3
-      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
-
     - name: "Python 3.6 on Linux"
       python: 3.6
       dist: xenial
@@ -27,21 +21,15 @@ matrix:
       language: shell
       before_install: brew install libomp
 
-    - name: "Python 3.6 on Windows"
-      os: windows
-      language: shell
-      before_install: choco install python --version 3.6.7
-      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
-
     - name: "Python 3.5 on Linux"
       python: 3.5
       dist: xenial
-      
-    - name: "Python 3.5 on Windows"
-      os: windows
+
+    - name: "Python 3.6 on macOS"
+      os: osx
+      osx_image: xcode9.2
       language: shell
-      before_install: choco install python --version 3.5.4
-      env: PATH=/c/Python35:/c/Python35/Scripts:$PATH
-      
+      before_install: brew install libomp https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
+
 install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
 script: python3 --version || python --version && python3 -c "import tests.test" || python -c "import tests.test"
