@@ -56,7 +56,7 @@ import numpy as np
 import pandas as pd
 
 from models.mtcnn import MTCNN
-from models.inception_resnet_v1 import InceptionResNetV1
+from models.inception_resnet_v1 import InceptionResnetV1
 
 # Define MTCNN module
 # Default params shown for illustration, but not needed
@@ -67,7 +67,7 @@ mtcnn = MTCNN(
 
 # Define Inception Resnet V1 module
 # Set classify=True for pretrained classifier
-resnet = InceptionResNetV1(pretrained='vggface2').eval()
+resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 # Define a dataset and data loader
 trans = transforms.Compose([
