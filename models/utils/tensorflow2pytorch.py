@@ -77,7 +77,7 @@ def load_tf_batchNorm(weights, layer):
     layer.running_var = torch.tensor(weights[2]).view(layer.running_var.shape)
 
 
-def load_tf_conv2d(weights, layer):
+def load_tf_conv2d(weights, layer, transpose=False):
     """Load tensorflow weights into nn.Conv2d object.
     
     Arguments:
@@ -91,11 +91,21 @@ def load_tf_conv2d(weights, layer):
                     .view(layer.bias.data.shape)
             )
         weights = weights[0]
+    
+    if transpose:
+        dim_order = (3, 2, 1, 0)
+    else:
+        dim_order = (3, 2, 0, 1)
+
     layer.weight.data = (
         torch.tensor(weights)
-            .permute(3, 2, 0, 1)
+            .permute(dim_order)
             .view(layer.weight.data.shape)
     )
+
+
+def load_tf_conv2d_trans(weights, layer):
+    return load_tf_conv2d(weights, layer, transpose=True)
 
 
 def load_tf_basicConv2d(weights, layer):
@@ -241,14 +251,19 @@ def compare_mtcnn(pt_mdl, tf_fun, sess, ind, test_data):
 
     print('\nPassing test data through TF model\n')
     tf_output = tf_mdl(test_data.numpy())
-    print('\n'.join([str(torch.tensor(o).view(-1)[:10]) for o in tf_output]))
+    tf_output = [torch.tensor(out) for out in tf_output]
+    print('\n'.join([str(o.view(-1)[:10]) for o in tf_output]))
 
     print('\nPassing test data through PT model\n')
     with torch.no_grad():
-        pt_output = pt_mdl(test_data)
-    print('\n'.join([str(torch.tensor(o).view(-1)[:10]) for o in pt_output]))
+        pt_output = pt_mdl(test_data.permute(0, 3, 2, 1))
+    pt_output = [torch.tensor(out) for out in pt_output]
+    for i in range(len(pt_output)):
+        if len(pt_output[i].shape) == 4:
+            pt_output[i] = pt_output[i].permute(0, 3, 2, 1).contiguous()
+    print('\n'.join([str(o.view(-1)[:10]) for o in pt_output]))
 
-    distance = [torch.tensor(tf_o - pt_o).norm() for tf_o, pt_o in zip(tf_output, pt_output)]
+    distance = [(tf_o - pt_o).norm() for tf_o, pt_o in zip(tf_output, pt_output)]
     print(f'\nDistance {distance}\n')
 
 
@@ -280,69 +295,69 @@ def load_tf_model_weights(mdl, layer_lookup, tf_mdl_dir, is_resnet=True, arg_num
 
 
 def tensorflow2pytorch():
-    lookup_inception_resnet_v1 = {
-        'conv2d_1a': ['InceptionResnetV1/Conv2d_1a_3x3', load_tf_basicConv2d],
-        'conv2d_2a': ['InceptionResnetV1/Conv2d_2a_3x3', load_tf_basicConv2d],
-        'conv2d_2b': ['InceptionResnetV1/Conv2d_2b_3x3', load_tf_basicConv2d],
-        'conv2d_3b': ['InceptionResnetV1/Conv2d_3b_1x1', load_tf_basicConv2d],
-        'conv2d_4a': ['InceptionResnetV1/Conv2d_4a_3x3', load_tf_basicConv2d],
-        'conv2d_4b': ['InceptionResnetV1/Conv2d_4b_3x3', load_tf_basicConv2d],
-        'repeat_1': ['InceptionResnetV1/Repeat/block35', load_tf_repeat_1],
-        'mixed_6a': ['InceptionResnetV1/Mixed_6a', load_tf_mixed6a],
-        'repeat_2': ['InceptionResnetV1/Repeat_1/block17', load_tf_repeat_2],
-        'mixed_7a': ['InceptionResnetV1/Mixed_7a', load_tf_mixed7a],
-        'repeat_3': ['InceptionResnetV1/Repeat_2/block8', load_tf_repeat_3],
-        'block8': ['InceptionResnetV1/Block8', load_tf_block17_8],
-        'last_linear': ['InceptionResnetV1/Bottleneck/weights', load_tf_linear],
-        'last_bn': ['InceptionResnetV1/Bottleneck/BatchNorm', load_tf_batchNorm],
-        'logits': ['Logits', load_tf_linear],
-    }
+    # lookup_inception_resnet_v1 = {
+    #     'conv2d_1a': ['InceptionResnetV1/Conv2d_1a_3x3', load_tf_basicConv2d],
+    #     'conv2d_2a': ['InceptionResnetV1/Conv2d_2a_3x3', load_tf_basicConv2d],
+    #     'conv2d_2b': ['InceptionResnetV1/Conv2d_2b_3x3', load_tf_basicConv2d],
+    #     'conv2d_3b': ['InceptionResnetV1/Conv2d_3b_1x1', load_tf_basicConv2d],
+    #     'conv2d_4a': ['InceptionResnetV1/Conv2d_4a_3x3', load_tf_basicConv2d],
+    #     'conv2d_4b': ['InceptionResnetV1/Conv2d_4b_3x3', load_tf_basicConv2d],
+    #     'repeat_1': ['InceptionResnetV1/Repeat/block35', load_tf_repeat_1],
+    #     'mixed_6a': ['InceptionResnetV1/Mixed_6a', load_tf_mixed6a],
+    #     'repeat_2': ['InceptionResnetV1/Repeat_1/block17', load_tf_repeat_2],
+    #     'mixed_7a': ['InceptionResnetV1/Mixed_7a', load_tf_mixed7a],
+    #     'repeat_3': ['InceptionResnetV1/Repeat_2/block8', load_tf_repeat_3],
+    #     'block8': ['InceptionResnetV1/Block8', load_tf_block17_8],
+    #     'last_linear': ['InceptionResnetV1/Bottleneck/weights', load_tf_linear],
+    #     'last_bn': ['InceptionResnetV1/Bottleneck/BatchNorm', load_tf_batchNorm],
+    #     'logits': ['Logits', load_tf_linear],
+    # }
 
-    print('\nLoad VGGFace2-trained weights and save\n')
-    mdl = InceptionResnetV1(num_classes=8631).eval()
-    tf_mdl_dir = 'data/20180402-114759'
-    data_name = 'vggface2'
-    load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
-    state_dict = mdl.state_dict()
-    torch.save(state_dict, f'{tf_mdl_dir}-{data_name}.pt')    
-    torch.save(
-        {
-            'logits.weight': state_dict['logits.weight'],
-            'logits.bias': state_dict['logits.bias'],
-        },
-        f'{tf_mdl_dir}-{data_name}-logits.pt'
-    )
-    state_dict.pop('logits.weight')
-    state_dict.pop('logits.bias')
-    torch.save(state_dict, f'{tf_mdl_dir}-{data_name}-features.pt')
+    # print('\nLoad VGGFace2-trained weights and save\n')
+    # mdl = InceptionResnetV1(num_classes=8631).eval()
+    # tf_mdl_dir = 'data/20180402-114759'
+    # data_name = 'vggface2'
+    # load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
+    # state_dict = mdl.state_dict()
+    # torch.save(state_dict, f'{tf_mdl_dir}-{data_name}.pt')    
+    # torch.save(
+    #     {
+    #         'logits.weight': state_dict['logits.weight'],
+    #         'logits.bias': state_dict['logits.bias'],
+    #     },
+    #     f'{tf_mdl_dir}-{data_name}-logits.pt'
+    # )
+    # state_dict.pop('logits.weight')
+    # state_dict.pop('logits.bias')
+    # torch.save(state_dict, f'{tf_mdl_dir}-{data_name}-features.pt')
     
-    print('\nLoad CASIA-Webface-trained weights and save\n')
-    mdl = InceptionResnetV1(num_classes=10575).eval()
-    tf_mdl_dir = 'data/20180408-102900'
-    data_name = 'casia-webface'
-    load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
-    state_dict = mdl.state_dict()
-    torch.save(state_dict, f'{tf_mdl_dir}-{data_name}.pt')    
-    torch.save(
-        {
-            'logits.weight': state_dict['logits.weight'],
-            'logits.bias': state_dict['logits.bias'],
-        },
-        f'{tf_mdl_dir}-{data_name}-logits.pt'
-    )
-    state_dict.pop('logits.weight')
-    state_dict.pop('logits.bias')
-    torch.save(state_dict, f'{tf_mdl_dir}-{data_name}-features.pt')
+    # print('\nLoad CASIA-Webface-trained weights and save\n')
+    # mdl = InceptionResnetV1(num_classes=10575).eval()
+    # tf_mdl_dir = 'data/20180408-102900'
+    # data_name = 'casia-webface'
+    # load_tf_model_weights(mdl, lookup_inception_resnet_v1, tf_mdl_dir)
+    # state_dict = mdl.state_dict()
+    # torch.save(state_dict, f'{tf_mdl_dir}-{data_name}.pt')    
+    # torch.save(
+    #     {
+    #         'logits.weight': state_dict['logits.weight'],
+    #         'logits.bias': state_dict['logits.bias'],
+    #     },
+    #     f'{tf_mdl_dir}-{data_name}-logits.pt'
+    # )
+    # state_dict.pop('logits.weight')
+    # state_dict.pop('logits.bias')
+    # torch.save(state_dict, f'{tf_mdl_dir}-{data_name}-features.pt')
     
     lookup_pnet = {
-        'conv1': ['pnet/conv1', load_tf_conv2d],
+        'conv1': ['pnet/conv1', load_tf_conv2d_trans],
         'prelu1': ['pnet/PReLU1', load_tf_linear],
-        'conv2': ['pnet/conv2', load_tf_conv2d],
+        'conv2': ['pnet/conv2', load_tf_conv2d_trans],
         'prelu2': ['pnet/PReLU2', load_tf_linear],
-        'conv3': ['pnet/conv3', load_tf_conv2d],
+        'conv3': ['pnet/conv3', load_tf_conv2d_trans],
         'prelu3': ['pnet/PReLU3', load_tf_linear],
-        'conv4_1': ['pnet/conv4-1', load_tf_conv2d],
-        'conv4_2': ['pnet/conv4-2', load_tf_conv2d],
+        'conv4_1': ['pnet/conv4-1', load_tf_conv2d_trans],
+        'conv4_2': ['pnet/conv4-2', load_tf_conv2d_trans],
     }
     lookup_rnet = {
         'conv1': ['rnet/conv1', load_tf_conv2d],
@@ -382,20 +397,20 @@ def tensorflow2pytorch():
     with tf.Session() as sess:
         compare_mtcnn(mdl, tf_mdl_dir, sess, 0, torch.randn(1, 256, 256, 3).detach())
 
-    print('\nLoad RNet weights and save\n')
-    mdl = RNet()
-    data_name = 'rnet'
-    load_tf_model_weights(mdl, lookup_rnet, tf_mdl_dir, is_resnet=False, arg_num=1)
-    torch.save(mdl.state_dict(), f'data/{data_name}.pt')
-    tf.reset_default_graph()
-    with tf.Session() as sess:
-        compare_mtcnn(mdl, tf_mdl_dir, sess, 1, torch.randn(1, 24, 24, 3).detach())
+    # print('\nLoad RNet weights and save\n')
+    # mdl = RNet()
+    # data_name = 'rnet'
+    # load_tf_model_weights(mdl, lookup_rnet, tf_mdl_dir, is_resnet=False, arg_num=1)
+    # torch.save(mdl.state_dict(), f'data/{data_name}.pt')
+    # tf.reset_default_graph()
+    # with tf.Session() as sess:
+    #     compare_mtcnn(mdl, tf_mdl_dir, sess, 1, torch.randn(1, 24, 24, 3).detach())
 
-    print('\nLoad ONet weights and save\n')
-    mdl = ONet()
-    data_name = 'onet'
-    load_tf_model_weights(mdl, lookup_onet, tf_mdl_dir, is_resnet=False, arg_num=2)
-    torch.save(mdl.state_dict(), f'data/{data_name}.pt')
-    tf.reset_default_graph()
-    with tf.Session() as sess:
-        compare_mtcnn(mdl, tf_mdl_dir, sess, 2, torch.randn(1, 48, 48, 3).detach())
+    # print('\nLoad ONet weights and save\n')
+    # mdl = ONet()
+    # data_name = 'onet'
+    # load_tf_model_weights(mdl, lookup_onet, tf_mdl_dir, is_resnet=False, arg_num=2)
+    # torch.save(mdl.state_dict(), f'data/{data_name}.pt')
+    # tf.reset_default_graph()
+    # with tf.Session() as sess:
+    #     compare_mtcnn(mdl, tf_mdl_dir, sess, 2, torch.randn(1, 48, 48, 3).detach())

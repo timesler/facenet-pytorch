@@ -43,9 +43,6 @@ class PNet(nn.Module):
     def forward(self, x):
         if isinstance(x, np.ndarray):
             x = torch.tensor(x).float()
-
-        if x.shape[3] == 3:
-            x = x.permute(0, 3, 1, 2)
         
         x = x.to(self.device)
         x = self.conv1(x)
@@ -56,8 +53,8 @@ class PNet(nn.Module):
         x = self.conv3(x)
         x = self.prelu3(x)
         a = self.conv4_1(x)
-        a = self.softmax4_1(a).permute(0, 3, 2, 1)
-        b = self.conv4_2(x).permute(0, 3, 2, 1)
+        a = self.softmax4_1(a)
+        b = self.conv4_2(x)
         return b.cpu().numpy(), a.cpu().numpy()
 
 
