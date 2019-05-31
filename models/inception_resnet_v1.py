@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-import requests
-import tempfile
+from torch.hub import _get_torch_home, _download_url_to_file
+import os
 
 
 class BasicConv2d(nn.Module):
@@ -291,19 +291,17 @@ def load_weights(mdl, name):
         logits_path = 'https://drive.google.com/uc?export=download&id=1QrhPgn1bGlDxAil2uc07ctunCQoDnCzT'
     else:
         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
+
+    torch_home = _get_torch_home()
+    model_dir = os.path.join(torch_home, 'checkpoints')
+    os.makedirs(model_dir, exist_ok=True)
     
     state_dict = {}
     for i, path in enumerate([features_path, logits_path]):
-        for t in range(10):
-            try:
-                print('\rDownloading parameters ({}/2), attempt {}'.format(i+1, t+1), end='')
-                r = requests.get(path, allow_redirects=True)
-                with tempfile.TemporaryFile() as f:
-                    f.write(r.content)
-                    f.seek(0, 0)
-                    state_dict.update(torch.load(f))
-                break
-            except:
-                pass
-    print('')
+        cached_file = os.path.join(model_dir, '{}_{}.pt'.format(name, path[-10:]))
+        if not os.path.exists(cached_file):
+            print('Downloading: "{}" to {}\n'.format(path, cached_file))
+            _download_url_to_file(path, cached_file, None, progress=True)
+        state_dict.update(torch.load(cached_file))
+    
     mdl.load_state_dict(state_dict)
