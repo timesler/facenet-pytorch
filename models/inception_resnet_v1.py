@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
+import requests
 import os
 
 
@@ -301,11 +302,11 @@ def load_weights(mdl, name):
         if not os.path.exists(cached_file):
             for t in range(10):
                 try:
-                    print('Downloading parameters ({}/2), attempt {}'.format(i+1, t+1), end='')
+                    print('Downloading parameters ({}/2), attempt {}'.format(i+1, t+1))
                     r = requests.get(path, allow_redirects=True)
-                    with open(cached_file, 'w') as f:
+                    with open(cached_file, 'wb') as f:
                         f.write(r.content)
-                    break
+                        break
                 except:
                     pass
         state_dict.update(torch.load(cached_file))
