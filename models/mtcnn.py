@@ -223,7 +223,10 @@ class MTCNN(nn.Module):
 
             if boxes.shape[0] == 0:
                 print('Face not found')
-                return None, None
+                if return_prob:
+                    return None, 0
+                else:
+                    return None
     
             prob = torch.tensor(boxes[0, 4])
             box = torch.tensor(boxes[0, 0:4]).squeeze()
