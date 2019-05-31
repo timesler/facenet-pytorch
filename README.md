@@ -97,6 +97,15 @@ dists = [[(e1 - e2).norm().item() for e2 in embeddings] for e1 in embeddings]
 print(pd.DataFrame(dists, columns=names, index=names))
 
 ```
+Output:
+```bash
+                angelina_jolie  bradley_cooper  kate_siegel  paul_rudd  shea_whigham
+angelina_jolie        0.000000        1.392167     0.777482   1.422187      1.448250
+bradley_cooper        1.392167        0.000000     1.288665   0.868175      0.907774
+kate_siegel           0.777482        1.288665     0.000000   1.354270      1.408071
+paul_rudd             1.422187        0.868175     1.354270   0.000000      1.071160
+shea_whigham          1.448250        0.907774     1.408071   1.071160      0.000000
+```
 
 ## Use this repo in your own project
 
