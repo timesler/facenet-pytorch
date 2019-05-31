@@ -1,8 +1,9 @@
+import torch
 import numpy as np
 import cv2
 
 
-def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
+def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
     factor_count=0
     total_boxes=np.empty((0,9))
     points=np.empty(0)
@@ -26,16 +27,16 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
         im_data = (im_data-127.5)*0.0078125
         img_x = np.expand_dims(im_data, 0)
         img_y = np.transpose(img_x, (0, 3, 1, 2))
-        out = pnet(img_y)
-        out0 = np.transpose(out[0], (0, 2, 3, 1))
-        out1 = np.transpose(out[1], (0, 2, 3, 1))
+        out = pnet(torch.tensor(img_y).float().to(device))
+        out0 = np.transpose(out[0], (0, 3, 2, 1))
+        out1 = np.transpose(out[1], (0, 3, 2, 1))
         
-        boxes, _ = generateBoundingBox(out1[0, :, :, 1].copy(), out0[0, :, :, :].copy(), scale, threshold[0])
+        boxes, _ = generateBoundingBox(out1[0, :, :, 1], out0[0, :, :, :], scale, threshold[0])
         
         # inter-scale nms
         pick = nms(boxes.copy(), 0.5, 'Union')
         if boxes.size>0 and pick.size>0:
-            boxes = boxes[pick,:]
+            boxes = boxes[pick, :]
             total_boxes = np.append(total_boxes, boxes, axis=0)
 
     numbox = total_boxes.shape[0]
@@ -65,8 +66,8 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
             else:
                 return np.empty()
         tempimg = (tempimg-127.5)*0.0078125
-        tempimg1 = np.transpose(tempimg, (3,1,0,2))
-        out = rnet(tempimg1)
+        tempimg1 = np.transpose(tempimg, (3,2,0,1))
+        out = rnet(torch.tensor(tempimg1).float().to(device))
         out0 = np.transpose(out[0])
         out1 = np.transpose(out[1])
         score = out1[1,:]
@@ -93,8 +94,8 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor):
             else:
                 return np.empty()
         tempimg = (tempimg-127.5)*0.0078125
-        tempimg1 = np.transpose(tempimg, (3,1,0,2))
-        out = onet(tempimg1)
+        tempimg1 = np.transpose(tempimg, (3,2,0,1))
+        out = onet(torch.tensor(tempimg1).float().to(device))
         out0 = np.transpose(out[0])
         out1 = np.transpose(out[1])
         out2 = np.transpose(out[2])
@@ -136,11 +137,7 @@ def generateBoundingBox(imap, reg, scale, t):
     stride=2
     cellsize=12
 
-    imap = np.transpose(imap)
-    dx1 = np.transpose(reg[:,:,0])
-    dy1 = np.transpose(reg[:,:,1])
-    dx2 = np.transpose(reg[:,:,2])
-    dy2 = np.transpose(reg[:,:,3])
+    dx1, dy1, dx2, dy2 = reg[:,:,0], reg[:,:,1], reg[:,:,2], reg[:,:,3]
     y, x = np.where(imap >= t)
     if y.shape[0]==1:
         dx1 = np.flipud(dx1)
