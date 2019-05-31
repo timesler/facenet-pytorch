@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 import requests
+from requests.adapters import HTTPAdapter
 import os
 
 
@@ -300,15 +301,12 @@ def load_weights(mdl, name):
     for i, path in enumerate([features_path, logits_path]):
         cached_file = os.path.join(model_dir, '{}_{}.pt'.format(name, path[-10:]))
         if not os.path.exists(cached_file):
-            for t in range(10):
-                try:
-                    print('Downloading parameters ({}/2), attempt {}'.format(i+1, t+1))
-                    r = requests.get(path, allow_redirects=True)
-                    with open(cached_file, 'wb') as f:
-                        f.write(r.content)
-                        break
-                except:
-                    pass
+            print('Downloading parameters ({}/2)'.format(i+1))
+            s = requests.Session()
+            s.mount('https://', HTTPAdapter(max_retries=10))
+            r = s.get(path, allow_redirects=True)
+            with open(cached_file, 'wb') as f:
+                f.write(r.content)
         state_dict.update(torch.load(cached_file))
     
     mdl.load_state_dict(state_dict)
