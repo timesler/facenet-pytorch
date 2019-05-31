@@ -14,7 +14,7 @@ class PNet(nn.Module):
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained=True, device=None):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 10, kernel_size=3)
@@ -27,6 +27,11 @@ class PNet(nn.Module):
         self.conv4_1 = nn.Conv2d(32, 2, kernel_size=1)
         self.softmax4_1 = nn.Softmax(dim=1)
         self.conv4_2 = nn.Conv2d(32, 4, kernel_size=1)
+
+        if device is None:
+            self.device = torch.device('cpu')
+        else:
+            self.device = device
 
         self.training = False
 
@@ -41,7 +46,8 @@ class PNet(nn.Module):
 
         if x.shape[3] == 3:
             x = x.permute(0, 3, 1, 2)
-
+        
+        x = x.to(self.device)
         x = self.conv1(x)
         x = self.prelu1(x)
         x = self.pool1(x)
@@ -50,9 +56,9 @@ class PNet(nn.Module):
         x = self.conv3(x)
         x = self.prelu3(x)
         a = self.conv4_1(x)
-        a = self.softmax4_1(a).permute(0, 2, 3, 1)
-        b = self.conv4_2(x).permute(0, 2, 3, 1)
-        return b.numpy(), a.numpy()
+        a = self.softmax4_1(a).permute(0, 3, 2, 1)
+        b = self.conv4_2(x).permute(0, 3, 2, 1)
+        return b.cpu().numpy(), a.cpu().numpy()
 
 
 class RNet(nn.Module):
@@ -62,7 +68,7 @@ class RNet(nn.Module):
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained=True, device=None):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 28, kernel_size=3)
@@ -79,6 +85,11 @@ class RNet(nn.Module):
         self.softmax5_1 = nn.Softmax(dim=1)
         self.dense5_2 = nn.Linear(128, 4)
 
+        if device is None:
+            self.device = torch.device('cpu')
+        else:
+            self.device = device
+
         self.training = False
 
         if pretrained:
@@ -93,6 +104,7 @@ class RNet(nn.Module):
         if x.shape[3] == 3:
             x = x.permute(0, 3, 1, 2)
 
+        x = x.to(self.device)
         x = self.conv1(x)
         x = self.prelu1(x)
         x = self.pool1(x)
@@ -107,7 +119,7 @@ class RNet(nn.Module):
         a = self.dense5_1(x)
         a = self.softmax5_1(a)
         b = self.dense5_2(x)
-        return b.numpy(), a.numpy()
+        return b.cpu().numpy(), a.cpu().numpy()
 
 
 class ONet(nn.Module):
@@ -117,7 +129,7 @@ class ONet(nn.Module):
         pretrained {bool} -- Whether or not to load saved pretrained weights (default: {True})
     """
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained=True, device=None):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3)
@@ -138,6 +150,11 @@ class ONet(nn.Module):
         self.dense6_2 = nn.Linear(256, 4)
         self.dense6_3 = nn.Linear(256, 10)
 
+        if device is None:
+            self.device = torch.device('cpu')
+        else:
+            self.device = device
+
         self.training = False
 
         if pretrained:
@@ -152,6 +169,7 @@ class ONet(nn.Module):
         if x.shape[3] == 3:
             x = x.permute(0, 3, 1, 2)
 
+        x = x.to(self.device)
         x = self.conv1(x)
         x = self.prelu1(x)
         x = self.pool1(x)
@@ -170,7 +188,7 @@ class ONet(nn.Module):
         a = self.softmax6_1(a)
         b = self.dense6_2(x)
         c = self.dense6_3(x)
-        return b.numpy(), c.numpy(), a.numpy()
+        return b.cpu().numpy(), c.cpu().numpy(), a.cpu().numpy()
 
 
 class MTCNN(nn.Module):
@@ -194,7 +212,8 @@ class MTCNN(nn.Module):
 
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
-        thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True
+        thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True,
+        device=None
     ):
         super().__init__()
 
@@ -205,9 +224,12 @@ class MTCNN(nn.Module):
         self.factor = factor
         self.prewhiten = prewhiten
         
-        self.pnet = PNet(True)
-        self.rnet = RNet(True)
-        self.onet = ONet(True)
+        self.pnet = PNet(device=device)
+        self.rnet = RNet(device=device)
+        self.onet = ONet(device=device)
+
+        if device is not None:
+            self.to(device)
 
     def forward(self, img, save_path=None, return_prob=False):
         # TODO: rewrite this using pytorch tensors and allow passing batches
