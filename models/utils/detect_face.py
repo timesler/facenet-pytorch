@@ -4,15 +4,15 @@ import cv2
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
-    total_boxes = np.empty((0, 9))
     w, h = img.size
-    minl = min(h, w)
     m = 12.0 / minsize
+    minl = min(h, w)
     minl = minl * m
     img = np.uint8(img)
 
     # First stage
     # Create scale pyramid
+    total_boxes = np.empty((0, 9))
     scale = m
     while minl >= 12:
         hs = int(h * scale + 1)
@@ -21,9 +21,9 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = (im_data - 127.5) * 0.0078125
         img_x = np.expand_dims(im_data, 0)
         img_y = np.transpose(img_x, (0, 3, 1, 2))
-        imap, reg = pnet(torch.tensor(img_y).float().to(device))
+        reg, probs = pnet(torch.tensor(img_y).float().to(device))
         
-        boxes = generateBoundingBox(imap[0, 1, :, :], reg[0, :, :, :], scale, threshold[0]).numpy()
+        boxes = generateBoundingBox(reg[0], probs[0, 1], scale, threshold[0]).numpy()
 
         scale = scale * factor
         minl = minl * factor
@@ -128,12 +128,12 @@ def bbreg(boundingbox,reg):
     return boundingbox
 
 
-def generateBoundingBox(imap, reg, scale, thresh):
+def generateBoundingBox(reg, probs, scale, thresh):
     stride=2
     cellsize=12
     
-    mask = imap >= thresh
-    score = imap[mask]
+    mask = probs >= thresh
+    score = probs[mask]
     reg = np.transpose(reg[0:4, mask])
     bb = mask.nonzero().float().flip(1)
     q1 = ((stride * bb + 1) / scale).floor()
