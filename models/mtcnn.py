@@ -47,7 +47,7 @@ class PNet(nn.Module):
         a = self.conv4_1(x)
         a = self.softmax4_1(a)
         b = self.conv4_2(x)
-        return a.cpu(), b.cpu()
+        return b.cpu(), a.cpu()
 
 
 class RNet(nn.Module):
