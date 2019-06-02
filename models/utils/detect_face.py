@@ -15,21 +15,21 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
     # Create scale pyramid
     scale = m
     while minl >= 12:
-        hs = int(np.ceil(h * scale))
-        ws = int(np.ceil(w * scale))
+        hs = int(h * scale + 1)
+        ws = int(w * scale + 1)
         im_data = imresample(img, (hs, ws))
         im_data = (im_data - 127.5) * 0.0078125
         img_x = np.expand_dims(im_data, 0)
         img_y = np.transpose(img_x, (0, 3, 1, 2))
         imap, reg = pnet(torch.tensor(img_y).float().to(device))
         
-        boxes = generateBoundingBox(imap[0, 1, :, :], reg[0, :, :, :], scale, threshold[0])
+        boxes = generateBoundingBox(imap[0, 1, :, :], reg[0, :, :, :], scale, threshold[0]).numpy()
 
         scale = scale * factor
         minl = minl * factor
         
         # inter-scale nms
-        pick = nms(boxes.copy(), 0.5, 'Union')
+        pick = nms(boxes, 0.5, 'Union')
         if boxes.size > 0 and pick.size > 0:
             boxes = boxes[pick, :]
             total_boxes = np.append(total_boxes, boxes, axis=0)
@@ -128,24 +128,17 @@ def bbreg(boundingbox,reg):
     return boundingbox
 
 
-def generateBoundingBox(imap, reg, scale, t):
-    imap = np.transpose(imap)
-    reg = np.transpose(reg, (2, 1, 0))
+def generateBoundingBox(imap, reg, scale, thresh):
     stride=2
     cellsize=12
     
-    y, x = np.where(imap >= t)
-    if y.shape[0]==1:
-        reg = np.flipud(reg)
-    dx1, dy1, dx2, dy2 = reg[:,:,0], reg[:,:,1], reg[:,:,2], reg[:,:,3]
-    score = imap[(y,x)]
-    reg = np.transpose(np.vstack([ dx1[(y,x)], dy1[(y,x)], dx2[(y,x)], dy2[(y,x)] ]))
-    if reg.size==0:
-        reg = np.empty((0,3))
-    bb = np.transpose(np.vstack([y,x]))
-    q1 = np.fix((stride*bb+1)/scale)
-    q2 = np.fix((stride*bb+cellsize-1+1)/scale)
-    boundingbox = np.hstack([q1, q2, np.expand_dims(score,1), reg])
+    mask = imap >= thresh
+    score = imap[mask]
+    reg = np.transpose(reg[0:4, mask])
+    bb = mask.nonzero().float().flip(1)
+    q1 = ((stride * bb + 1) / scale).floor()
+    q2 = ((stride * bb + cellsize - 1 + 1) / scale).floor()
+    boundingbox = torch.cat([q1, q2, score.unsqueeze(1), reg], dim=1)
     return boundingbox
  
 
