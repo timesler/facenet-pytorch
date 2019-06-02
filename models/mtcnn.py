@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torchvision.transforms.functional as F
+from PIL import Image
 import numpy as np
 import os
 
@@ -35,7 +36,7 @@ class PNet(nn.Module):
             state_dict = torch.load(state_dict_path)
             self.load_state_dict(state_dict)
     
-    def forward(self, x):        
+    def forward(self, x):  
         x = self.conv1(x)
         x = self.prelu1(x)
         x = self.pool1(x)
@@ -46,7 +47,7 @@ class PNet(nn.Module):
         a = self.conv4_1(x)
         a = self.softmax4_1(a)
         b = self.conv4_2(x)
-        return b.cpu().numpy(), a.cpu().numpy()
+        return a.cpu(), b.cpu()
 
 
 class RNet(nn.Module):
@@ -95,7 +96,7 @@ class RNet(nn.Module):
         a = self.dense5_1(x)
         a = self.softmax5_1(a)
         b = self.dense5_2(x)
-        return b.cpu().numpy(), a.cpu().numpy()
+        return b.cpu(), a.cpu()
 
 
 class ONet(nn.Module):
@@ -152,7 +153,7 @@ class ONet(nn.Module):
         a = self.softmax6_1(a)
         b = self.dense6_2(x)
         c = self.dense6_3(x)
-        return b.cpu().numpy(), c.cpu().numpy(), a.cpu().numpy()
+        return b.cpu(), c.cpu(), a.cpu()
 
 
 class MTCNN(nn.Module):
@@ -188,7 +189,7 @@ class MTCNN(nn.Module):
         self.factor = factor
         self.prewhiten = prewhiten
         
-        self.pnet = PNet()
+        self.pnet = PNet().share_memory()
         self.rnet = RNet()
         self.onet = ONet()
 
@@ -202,10 +203,8 @@ class MTCNN(nn.Module):
         # TODO: rewrite this using pytorch tensors and allow passing batches
 
         with torch.no_grad():
-            img = img.permute(1, 2, 0)
-
             boxes, _ = detect_face(
-                img.numpy(), self.min_face_size,
+                img, self.min_face_size,
                 self.pnet, self.rnet, self.onet,
                 self.thresholds, self.factor,
                 self.device
@@ -219,23 +218,23 @@ class MTCNN(nn.Module):
                     return None
     
             prob = torch.tensor(boxes[0, 4])
-            box = torch.tensor(boxes[0, 0:4]).squeeze()
-            box = torch.tensor([
-                (box[0] - self.margin/2).clamp(min=0),
-                (box[1] - self.margin/2).clamp(min=0),
-                (box[2] + self.margin/2).clamp(max=img.shape[1]),
-                (box[3] + self.margin/2).clamp(max=img.shape[0])
-            ]).int()
+            box = [
+                int(max(boxes[0, 0] - self.margin/2, 0)),
+                int(max(boxes[0, 1] - self.margin/2, 0)),
+                int(min(boxes[0, 2] + self.margin/2, img.size[0])),
+                int(min(boxes[0, 3] + self.margin/2, img.size[1]))
+            ]
 
-            img = img[box[1]:box[3], box[0]:box[2], :].permute(2, 0, 1)
-            img = F.to_pil_image(img)
-            img = F.resize(img, (self.image_size, self.image_size))
+            img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
 
             if save_path is not None:
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                img.save(save_path)
+                save_args = {}
+                if '.png' in save_path:
+                    save_args['compress_level'] = 0
+                img.save(save_path, **save_args)
 
-            img = torch.tensor(np.array(img)).float().permute(2, 0, 1)
+            img = F.to_tensor(np.float32(img))
             
             if self.prewhiten:
                 img = prewhiten(img)

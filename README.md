@@ -100,11 +100,11 @@ print(pd.DataFrame(dists, columns=names, index=names))
 Output:
 ```bash
                 angelina_jolie  bradley_cooper  kate_siegel  paul_rudd  shea_whigham
-angelina_jolie        0.000000        1.392167     0.777482   1.422187      1.448250
-bradley_cooper        1.392167        0.000000     1.288665   0.868175      0.907774
-kate_siegel           0.777482        1.288665     0.000000   1.354270      1.408071
-paul_rudd             1.422187        0.868175     1.354270   0.000000      1.071160
-shea_whigham          1.448250        0.907774     1.408071   1.071160      0.000000
+angelina_jolie        0.000000        1.389796     0.795807   1.461954      1.455719
+bradley_cooper        1.389796        0.000000     1.270406   0.896578      0.906192
+kate_siegel           0.795807        1.270406     0.000000   1.321325      1.423997
+paul_rudd             1.461954        0.896578     1.321325   0.000000      1.087301
+shea_whigham          1.455719        0.906192     1.423997   1.087301      0.000000
 ```
 
 ## Use this repo in your own project

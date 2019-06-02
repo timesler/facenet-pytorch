@@ -1,6 +1,7 @@
 from PIL import Image
 import torch
-from torchvision import transforms
+from torch.utils.data import DataLoader
+from torchvision import transforms, datasets
 import numpy as np
 import pandas as pd
 from time import time
@@ -8,20 +9,6 @@ from time import time
 from models.mtcnn import MTCNN, prewhiten
 from models.inception_resnet_v1 import InceptionResnetV1
 
-trans = transforms.Compose([
-    transforms.Resize(512),
-    np.int_,
-    transforms.ToTensor(),
-    torch.Tensor.byte
-])
-
-trans_cropped = transforms.Compose([
-    np.array,
-    torch.tensor,
-    torch.Tensor.float,
-    transforms.Lambda(lambda x: x.permute(2, 0, 1)),
-    prewhiten
-])
 
 def get_image(path, trans):
     img = Image.open(path)
@@ -29,15 +16,29 @@ def get_image(path, trans):
     return img
 
 
+trans = transforms.Compose([
+    transforms.Resize(512)
+])
+
+trans_cropped = transforms.Compose([
+    np.float32,
+    transforms.ToTensor(),
+    prewhiten
+])
+
 mtcnn_pt = MTCNN()
 resnet_pt = InceptionResnetV1(pretrained='vggface2').eval()
 
-names = ['bradley_cooper', 'shea_whigham', 'paul_rudd', 'kate_siegel', 'angelina_jolie']
+dataset = datasets.ImageFolder('data/test_images', transform=trans)
+dataset.idx_to_class = {k: v for v, k in dataset.class_to_idx.items()}
+loader = DataLoader(dataset, num_workers=8, collate_fn=lambda x: x[0])
+
+names = []
 aligned = []
 aligned_fromfile = []
-for name in names:
-    img = get_image('data/test_images/{}/1.jpg'.format(name), trans)
-
+for img, idx in loader:
+    name = dataset.idx_to_class[idx]
+    names.append(name)
     start = time()
     img_align = mtcnn_pt(img, save_path='data/test_images_aligned/{}/1.png'.format(name))
     print('MTCNN time: {:6f} seconds'.format(time() - start))
@@ -57,11 +58,11 @@ embs_fromfile = resnet_pt(aligned_fromfile)
 dists = [[(emb - e).norm().item() for e in embs] for emb in embs]
 dists_fromfile = [[(emb - e).norm().item() for e in embs_fromfile] for emb in embs_fromfile]
 expected = [
-    [0.000000, 0.907774, 0.868175, 1.288665, 1.392167],
-    [0.907774, 0.000000, 1.071160, 1.408071, 1.448250],
-    [0.868175, 1.071160, 0.000000, 1.354270, 1.422187],
-    [1.288665, 1.408071, 1.354270, 0.000000, 0.777482],
-    [1.392167, 1.448250, 1.422187, 0.777482, 0.000000]
+    [0.000000, 1.392167, 0.777482, 1.422187, 1.448250],
+    [1.392167, 0.000000, 1.288665, 0.868175, 0.907774],
+    [0.777482, 1.288665, 0.000000, 1.354270, 1.408071],
+    [1.422187, 0.868175, 1.354270, 0.000000, 1.071160],
+    [1.448250, 0.907774, 1.408071, 1.071160, 0.000000]
 ]
 
 print('\nOutput:')
