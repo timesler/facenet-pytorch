@@ -200,6 +200,18 @@ class MTCNN(nn.Module):
             self.device = torch.device('cpu')
 
     def forward(self, img, save_path=None, return_prob=False):
+        """Run MTCNN face detection on a PIL image.
+        
+        Arguments:
+            img {PIL.Image} -- A PIL image.
+        
+        Keyword Arguments:
+            save_path {str} -- An optional save path for the cropped image (default: {None})
+            return_prob {bool} -- Whether or not to return the detection probability (default: {False})
+        
+        Returns:
+            torch.Tensor -- tensor representing the cropped image.
+        """
         # TODO: rewrite this using pytorch tensors and allow passing batches
 
         with torch.no_grad():
