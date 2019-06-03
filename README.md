@@ -71,22 +71,19 @@ resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
 # Define a dataset and data loader
 trans = transforms.Compose([
-    transforms.Resize(512),
-    np.int_,
-    transforms.ToTensor(),
-    torch.Tensor.byte
+    transforms.Resize(1024)
 ])
 dataset = datasets.ImageFolder('data/test_images', transform=trans)
 dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
-loader = DataLoader(dataset)
+loader = DataLoader(dataset, collate_fn=lambda x: x[0])
 
-# Perform MTCNN facial detection
+# Perfom MTCNN facial detection
 aligned = []
 names = []
 for x, y in loader:
-    x_aligned = mtcnn(x[0])
+    x_aligned = mtcnn(x)
     aligned.append(x_aligned)
-    names.append(dataset.idx_to_class[y[0].item()])
+    names.append(dataset.idx_to_class[y])
 
 # Calculate image embeddings
 aligned = torch.stack(aligned)
