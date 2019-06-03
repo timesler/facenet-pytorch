@@ -203,7 +203,7 @@ class MTCNN(nn.Module):
         # TODO: rewrite this using pytorch tensors and allow passing batches
 
         with torch.no_grad():
-            boxes, _ = detect_face(
+            boxes = detect_face(
                 img, self.min_face_size,
                 self.pnet, self.rnet, self.onet,
                 self.thresholds, self.factor,
