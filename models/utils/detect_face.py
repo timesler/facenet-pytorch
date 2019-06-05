@@ -1,11 +1,11 @@
 import torch
 import numpy as np
+resize_mod = 'cv2'
 try:
     from cv2 import resize, INTER_AREA
-    resize_args = {'interpolation': INTER_AREA}
 except ImportError:
     from skimage.transform import resize
-    resize_args = {'preserve_range': True, 'anti_aliasing': True}
+    resize_mod = 'skimage'
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
@@ -225,5 +225,7 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    im_data = np.uint8(resize(img, (sz[1], sz[0]), **resize_args))
-    return im_data
+    out_shape = (sz[1], sz[0]) if resize_mod == 'cv2' else (sz[0], sz[1])
+    resize_args = {'interpolation': INTER_AREA} if resize_mod == 'cv2' else {'preserve_range': True}
+    im_data = resize(img, out_shape, **resize_args)
+    return np.uint8(im_data)
