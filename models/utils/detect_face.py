@@ -225,5 +225,5 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    im_data = resize(img, (sz[1], sz[0]), **resize_args)
+    im_data = np.uint8(resize(img, (sz[1], sz[0]), **resize_args))
     return im_data

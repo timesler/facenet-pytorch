@@ -28,10 +28,22 @@ matrix:
       language: shell
       before_install: brew install libomp
       env: PATH=/Users/travis/Library/Python/3.6/bin:$PATH
+    
+    - name: "Python 3.6 on Windows"
+      os: windows
+      language: shell
+      before_install: choco install python --version 3.6.7
+      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
 
     - name: "Python 3.5 on Linux"
       python: 3.5
       dist: xenial
+    
+    - name: "Python 3.5 on Windows"
+      os: windows
+      language: shell
+      before_install: choco install python --version 3.5.4
+      env: PATH=/c/Python35:/c/Python35/Scripts:$PATH
       
 install: pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
 script:
