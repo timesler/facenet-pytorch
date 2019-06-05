@@ -36,7 +36,7 @@ matrix:
 install: pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
 script:
   - python3 --version || python --version
-  - echo "import tests.test" > test.py
+  - echo "if __name__ == '__main__':" > test.py && echo "  import tests.test" >> test.py
   - coverage run --source models test.py && coverage report
 
 after_success:

@@ -1,4 +1,5 @@
 # Face Recognition Using Pytorch 
+[![Code Coverage](https://img.shields.io/codecov/c/github/timesler/facenet-pytorch.svg)](https://codecov.io/gh/timesler/facenet-pytorch)
 
 | System | 3.5 | 3.6 | 3.7 |
 | :---: | :---: | :---: | :---: |
