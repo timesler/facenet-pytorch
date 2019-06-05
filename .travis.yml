@@ -11,6 +11,12 @@ matrix:
       language: shell
       before_install: brew install libomp
       env: PATH=/Users/travis/Library/Python/3.7/bin:$PATH
+    
+    - name: "Python 3.7 on Windows"
+      os: windows
+      language: shell
+      before_install: choco install python --version 3.7.3
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
     - name: "Python 3.6 on Linux"
       python: 3.6

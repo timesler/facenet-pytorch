@@ -1,6 +1,11 @@
 import torch
 import numpy as np
-import cv2
+try:
+    import cv2
+    resize = lambda img, shape: cv2.resize(img, shape, interpolation=cv2.INTER_AREA)
+except ImportError:
+    from skimage import transform
+    resize = lambda img, shape: transform.resize(img, shape, preserve_range=True, anti_aliasing=True)
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
@@ -220,5 +225,5 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    im_data = cv2.resize(img, (sz[1], sz[0]), interpolation=cv2.INTER_AREA)
+    im_data = resize(img, (sz[1], sz[0]))
     return im_data
