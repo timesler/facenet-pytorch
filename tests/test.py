@@ -36,7 +36,7 @@ dataset = datasets.ImageFolder('data/test_images', transform=trans)
 dataset.idx_to_class = {k: v for v, k in dataset.class_to_idx.items()}
 loader = DataLoader(dataset, num_workers=8, collate_fn=lambda x: x[0])
 
-mtcnn_pt = MTCNN()
+mtcnn_pt = MTCNN(device=torch.device('cpu'))
 
 names = []
 aligned = []

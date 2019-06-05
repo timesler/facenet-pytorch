@@ -229,7 +229,7 @@ class MTCNN(nn.Module):
                 else:
                     return None
     
-            prob = torch.tensor(boxes[0, 4])
+            prob = boxes[0, 4]
             margin = [
                 self.margin * img.size[0] / self.image_size,
                 self.margin * img.size[1] / self.image_size
