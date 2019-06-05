@@ -32,7 +32,7 @@ install: pip3 install -r tests/requirements.txt || pip3 install --user -r tests/
 script:
   - python3 --version || python --version
   - echo "import tests.test" > test.py
-  - coverage run test.py || /Users/travis/Library/Python/3.7/bin/coverage run test.py
+  - coverage run test.py --omit __init__.py || /Users/travis/Library/Python/3.7/bin/coverage run test.py
 
 after_success:
-  - codecov || /Users/travis/Library/Python/3.7/bin/codecov
+  - codecov
