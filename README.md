@@ -1,9 +1,11 @@
 # Face Recognition Using Pytorch 
+[![Code Coverage](https://img.shields.io/codecov/c/github/timesler/facenet-pytorch.svg)](https://codecov.io/gh/timesler/facenet-pytorch)
 
-| System | 3.5 | 3.6 | 3.7 |
-| :---: | :---: | :---: | :---: |
-| Linux | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
-| macOS | - | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
+| System | Python | |
+| :---: | :---: | :---: |
+| Linux | 3.5, 3.6, 3.7 | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
+| macOS | 3.6, 3.7 | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
+| Windows | 3.5, 3.6, 3.7 | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
 
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
 
@@ -49,16 +51,6 @@ Face recognition can be easily applied to raw images by first detecting faces us
 Note that for real-world datasets, the below code should be modified to control batch sizes being passed to the Resnet. 
 
 See [models/utils/example.py](models/utils/example.py). This can be run with `python -c "import models.utils.example"`.
-
-Output:
-```bash
-                angelina_jolie  bradley_cooper  kate_siegel  paul_rudd  shea_whigham
-angelina_jolie        0.000000        1.389796     0.795807   1.461954      1.455719
-bradley_cooper        1.389796        0.000000     1.270406   0.896578      0.906192
-kate_siegel           0.795807        1.270406     0.000000   1.321325      1.423997
-paul_rudd             1.461954        0.896578     1.321325   0.000000      1.087301
-shea_whigham          1.455719        0.906192     1.423997   1.087301      0.000000
-```
 
 ## Use this repo in your own project
 
@@ -118,7 +110,3 @@ Q. Cao, L. Shen, W. Xie, O. M. Parkhi, A. Zisserman. _VGGFace2: A dataset for re
 D. Yi, Z. Lei, S. Liao and S. Z. Li. _CASIAWebface: Learning Face Representation from Scratch_, arXiv:1411.7923v1, 2014. [PDF](https://arxiv.org/pdf/1411.7923)
 
 K. Zhang, Z. Zhang, Z. Li and Y. Qiao. _Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks_, IEEE Signal Processing Letters, 2016. [PDF](https://kpzhang93.github.io/MTCNN_face_detection_alignment/paper/spl.pdf)
-
-## Todo
-
-* Add CI test for windows

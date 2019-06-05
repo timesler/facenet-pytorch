@@ -164,7 +164,7 @@ class MTCNN(nn.Module):
     
     Keyword Arguments:
         image_size {int} -- Output image size in pixels. The image will be square. (default: {160})
-        margin {int} -- Margin to add to bounding box, in terms of pixels in the original image. (default: {0})
+        margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. (default: {0})
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
@@ -189,15 +189,15 @@ class MTCNN(nn.Module):
         self.factor = factor
         self.prewhiten = prewhiten
         
-        self.pnet = PNet().share_memory()
+        self.pnet = PNet()
         self.rnet = RNet()
         self.onet = ONet()
 
+        self.device = torch.device('cpu')
         if device is not None:
             self.device = device
             self.to(device)
-        else:
-            self.device = torch.device('cpu')
+            
 
     def forward(self, img, save_path=None, return_prob=False):
         """Run MTCNN face detection on a PIL image.
@@ -229,12 +229,16 @@ class MTCNN(nn.Module):
                 else:
                     return None
     
-            prob = torch.tensor(boxes[0, 4])
+            prob = boxes[0, 4]
+            margin = [
+                self.margin * img.size[0] / self.image_size,
+                self.margin * img.size[1] / self.image_size
+            ]
             box = [
-                int(max(boxes[0, 0] - self.margin/2, 0)),
-                int(max(boxes[0, 1] - self.margin/2, 0)),
-                int(min(boxes[0, 2] + self.margin/2, img.size[0])),
-                int(min(boxes[0, 3] + self.margin/2, img.size[1]))
+                int(max(boxes[0, 0] - margin[0]/2, 0)),
+                int(max(boxes[0, 1] - margin[1]/2, 0)),
+                int(min(boxes[0, 2] + margin[0]/2, img.size[0])),
+                int(min(boxes[0, 3] + margin[1]/2, img.size[1]))
             ]
 
             img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
