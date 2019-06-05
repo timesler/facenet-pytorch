@@ -228,4 +228,4 @@ def imresample(img, sz):
     out_shape = (sz[1], sz[0]) if resize_mod == 'cv2' else (sz[0], sz[1])
     resize_args = {'interpolation': INTER_AREA} if resize_mod == 'cv2' else {'preserve_range': True}
     im_data = resize(img, out_shape, **resize_args)
-    return np.uint8(im_data)
+    return im_data
