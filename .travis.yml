@@ -35,4 +35,4 @@ script:
   - coverage run test.py || /Users/travis/Library/Python/3.7/bin/coverage run test.py
 
 after_success:
-  - codecov
+  - codecov || /Users/travis/Library/Python/3.7/bin/codecov
