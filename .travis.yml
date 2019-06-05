@@ -26,4 +26,7 @@ matrix:
       dist: xenial
       
 install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
-script: python3 --version || python --version && python3 -c "import tests.test" || python -c "import tests.test"
+script: 
+  - python3 --version || python --version
+  - python3 -c "import tests.test" || python -c "import tests.test"
+  - python3 -c "import models.utils.example" || python -c "import models.utils.example"
