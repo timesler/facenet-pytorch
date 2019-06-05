@@ -37,7 +37,7 @@ install: pip3 install -r tests/requirements.txt || pip3 install --user -r tests/
 script:
   - python3 --version || python --version
   - echo "import tests.test" > test.py
-  - coverage run --source models test.py
+  - coverage run --source models test.py && coverage report
 
 after_success:
   - codecov
