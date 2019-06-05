@@ -101,7 +101,7 @@ for i, ds in enumerate(['vggface2', 'casia-webface']):
 
 # CLASSIFICATION TEST
 
-resnet_pt.classify = True
+resnet_pt = InceptionResnetV1(pretrained=ds, classify=True).eval()
 prob = resnet_pt(aligned)
 assert prob.mean().detach().item() - 9.4563e-05 < 1e-5
 
