@@ -25,7 +25,7 @@ matrix:
       python: 3.5
       dist: xenial
       
-install: pip3 install --upgrade pip && pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
+install: pip3 install --user -r tests/requirements.txt
 script:
   - python3 --version || python --version
   - echo "import tests.test" > test.py
