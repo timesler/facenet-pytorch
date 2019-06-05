@@ -7,3 +7,4 @@ torch==1.1.0; sys_platform != 'win32'
 torchvision==0.2.2
 opencv-python>=4.1.0
 pandas==0.24.2
+codecov==2.0.15

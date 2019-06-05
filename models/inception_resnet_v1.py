@@ -245,7 +245,7 @@ class InceptionResnetV1(nn.Module):
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
 
         self.logits = nn.Linear(512, self.num_classes)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
         if pretrained is not None:
             load_weights(self, pretrained)
@@ -293,8 +293,7 @@ def load_weights(mdl, name):
     else:
         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
 
-    torch_home = get_torch_home()
-    model_dir = os.path.join(torch_home, 'checkpoints')
+    model_dir = os.path.join(get_torch_home(), 'checkpoints')
     os.makedirs(model_dir, exist_ok=True)
     
     state_dict = {}

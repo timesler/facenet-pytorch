@@ -31,8 +31,9 @@ aligned = []
 names = []
 for x, y in loader:
     x_aligned = mtcnn(x)
-    aligned.append(x_aligned)
-    names.append(dataset.idx_to_class[y])
+    if x_aligned is not None:
+        aligned.append(x_aligned)
+        names.append(dataset.idx_to_class[y])
 
 # Calculate image embeddings
 aligned = torch.stack(aligned)
