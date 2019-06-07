@@ -244,7 +244,7 @@ class MTCNN(nn.Module):
             img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
 
             if save_path is not None:
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                os.makedirs(os.path.dirname(save_path)+'/', exist_ok=True)
                 save_args = {}
                 if '.png' in save_path:
                     save_args['compress_level'] = 0
