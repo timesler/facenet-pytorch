@@ -230,10 +230,11 @@ class MTCNN(nn.Module):
                     return None
     
             prob = boxes[0, 4]
-            margin = [
-                self.margin * img.size[0] / self.image_size,
-                self.margin * img.size[1] / self.image_size
-            ]
+            # margin = [
+            #     self.margin * img.size[0] / self.image_size,
+            #     self.margin * img.size[1] / self.image_size
+            # ]
+            margin = [self.margin, self.margin]
             box = [
                 int(max(boxes[0, 0] - margin[0]/2, 0)),
                 int(max(boxes[0, 1] - margin[1]/2, 0)),
