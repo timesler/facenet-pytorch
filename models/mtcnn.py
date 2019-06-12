@@ -178,7 +178,7 @@ class MTCNN(nn.Module):
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True,
-        device=None
+        keep_largest=True, device=None
     ):
         super().__init__()
 
@@ -188,6 +188,7 @@ class MTCNN(nn.Module):
         self.thresholds = thresholds
         self.factor = factor
         self.prewhiten = prewhiten
+        self.keep_largest = keep_largest
         
         self.pnet = PNet()
         self.rnet = RNet()
@@ -222,23 +223,27 @@ class MTCNN(nn.Module):
                 self.device
             )
 
-            if boxes.shape[0] == 0:
+            if len(boxes) == 0:
                 print('Face not found')
                 if return_prob:
                     return None, 0
                 else:
                     return None
+            
+            keep = 0
+            if self.keep_largest:
+                keep = np.argmax((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))
     
-            prob = boxes[0, 4]
+            prob = boxes[keep, 4]
             margin = [
                 self.margin * img.size[0] / self.image_size,
                 self.margin * img.size[1] / self.image_size
             ]
             box = [
-                int(max(boxes[0, 0] - margin[0]/2, 0)),
-                int(max(boxes[0, 1] - margin[1]/2, 0)),
-                int(min(boxes[0, 2] + margin[0]/2, img.size[0])),
-                int(min(boxes[0, 3] + margin[1]/2, img.size[1]))
+                int(max(boxes[keep, 0] - margin[0]/2, 0)),
+                int(max(boxes[keep, 1] - margin[1]/2, 0)),
+                int(min(boxes[keep, 2] + margin[0]/2, img.size[0])),
+                int(min(boxes[keep, 3] + margin[1]/2, img.size[1]))
             ]
 
             img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
