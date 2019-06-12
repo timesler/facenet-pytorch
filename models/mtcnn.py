@@ -264,7 +264,7 @@ class MTCNN(nn.Module):
 
 def prewhiten(x):
     mean = x.mean()
-    std = x.std()
+    std = torch.tensor(x.numpy().std())
     std_adj = std.clamp(min=1.0/(float(x.numel())**0.5))
     y = (x - mean) / std_adj
     return y
