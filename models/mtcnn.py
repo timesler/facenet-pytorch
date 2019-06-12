@@ -229,21 +229,22 @@ class MTCNN(nn.Module):
                     return None, 0
                 else:
                     return None
-            
+
             keep = 0
             if self.keep_largest:
                 keep = np.argmax((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))
+            face = boxes[keep]
     
-            prob = boxes[keep, 4]
+            prob = face[4]
             margin = [
                 self.margin * img.size[0] / self.image_size,
                 self.margin * img.size[1] / self.image_size
             ]
             box = [
-                int(max(boxes[keep, 0] - margin[0]/2, 0)),
-                int(max(boxes[keep, 1] - margin[1]/2, 0)),
-                int(min(boxes[keep, 2] + margin[0]/2, img.size[0])),
-                int(min(boxes[keep, 3] + margin[1]/2, img.size[1]))
+                int(max(face[0] - margin[0]/2, 0)),
+                int(max(face[1] - margin[1]/2, 0)),
+                int(min(face[2] + margin[0]/2, img.size[0])),
+                int(min(face[3] + margin[1]/2, img.size[1]))
             ]
 
             img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
