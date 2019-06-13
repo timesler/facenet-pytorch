@@ -25,7 +25,7 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     ```
 1. If required, create a face _detection_ pipeline using MTCNN:
     ```python
-    mtcnn = MTCNN(image_size=<?>, margin=<?>)
+    mtcnn = MTCNN(image_size=<image_size>, margin=<margin>)
     ```
 1. Create an inception resnet (in eval mode):
     ```python
