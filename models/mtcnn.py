@@ -157,22 +157,30 @@ class ONet(nn.Module):
 
 
 class MTCNN(nn.Module):
-    """Complete MTCNN face detection module.
+    """MTCNN face detection module.
 
-    This class loads pretrained P-, R-, and O-nets and, given raw input images as tensors,
+    This class loads pretrained P-, R-, and O-nets and, given raw input images as PIL images,
     returns images cropped to include the face only. Cropped faces can optionally be saved also.
     
     Keyword Arguments:
         image_size {int} -- Output image size in pixels. The image will be square. (default: {160})
-        margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. (default: {0})
+        margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. 
+            Note that the application of the margin differs slightly from the davidsandberg/facenet
+            repo, which applies the margin to the original image before resizing, making the margin
+            dependent on the original image size. (default: {0})
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
         prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
+        keep_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
+            If False, the face with the highest detect probability is returned. (default: {True})
+        device {torch.device} -- The device on which to run neural net passes. Image tensors and
+            models are copied to this device before running forward passes. (default: {None})
     
     Returns:
-        Union[torch.Tensor, (torch.tensor, torch.Tensor)]  -- If detected, cropped image of a single face with
-            dimensions 3 x image_size x image_size. Optionally, the probability that a face was detected.
+        Union[torch.Tensor, (torch.tensor, torch.Tensor)]  -- If detected, cropped image of a
+            single face with dimensions 3 x image_size x image_size. Optionally, the probability
+            that a face was detected.
     """
 
     def __init__(
@@ -207,14 +215,15 @@ class MTCNN(nn.Module):
             img {PIL.Image} -- A PIL image.
         
         Keyword Arguments:
-            save_path {str} -- An optional save path for the cropped image (default: {None})
-            return_prob {bool} -- Whether or not to return the detection probability (default: {False})
+            save_path {str} -- An optional save path for the cropped image. Note that when
+                self.prewhiten=True, although the returned tensor is prewhitened, the saved face image
+                is not, so it is a true representation of the face in the input image. (default: {None})
+            return_prob {bool} -- Whether or not to return the detection probability. (default: {False})
         
         Returns:
-            torch.Tensor -- tensor representing the cropped image.
+            Union[torch.Tensor, (torch.tensor, float)] -- tensor representing the cropped image, with 
+                an optional detection probability.
         """
-        # TODO: rewrite this using pytorch tensors and allow passing batches
-
         with torch.no_grad():
             boxes = detect_face(
                 img, self.min_face_size,

@@ -11,20 +11,57 @@ This is a repository for Inception Resnet (V1) models in pytorch, pretrained on 
 
 Pytorch model weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
 
-Included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference with Inception Resnet models. Theses models are also pretrained. 
+Also included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference. These models are also pretrained.
+
+## Quick start
+
+1. Clone this repo, removing the '-' to allow python imports:
+    ```git
+    git clone https://github.com/timesler/facenet-pytorch.git facenet_pytorch
+    ```
+1. In python, import the module:
+    ```python
+    from facenet_pytorch import MTCNN, InceptionResnetV1
+    ```
+1. If required, create a face _detection_ pipeline using MTCNN:
+    ```python
+    mtcnn = MTCNN(image_size=<?>, margin=<?>)
+    ```
+1. Create an inception resnet (in eval mode):
+    ```python
+    resnet = InceptionResnetV1(pretrained='vggface2').eval()
+    ```
+1. Process an image:
+    ```python
+    from PIL import Image
+    
+    img = Image.open(<image path>)
+
+    # Get cropped and prewhitened image tensor
+    img_cropped = mtcnn(img, save_path=<optional save path>)
+
+    # Calculate embedding (unsqueeze to add batch dimension)
+    img_embedding = resnet(img_cropped.unsqueeze(0))
+
+    # Or, if using for VGGFace2 classification
+    resnet.classify = True
+    img_probs = resnet(img_cropped.unsqueeze(0))
+    ```
+
+See `help(MTCNN)` and `help(InceptionResnetV1)` for usage and implementation details.
 
 ## Pretrained models
 
 See: [models/inception_resnet_v1.py](models/inception_resnet_v1.py)
 
-The following models have been ported to pytorch (with links to download pytorch `state_dict`'s):
+The following models have been ported to pytorch (with links to download pytorch state_dict's):
 
-|Model name|LFW accuracy (listed [here](https://github.com/davidsandberg/facenet))|Training dataset|
-|-|-|-|
+|Model name|LFW accuracy (as listed [here](https://github.com/davidsandberg/facenet))|Training dataset|
+| :- | :-: | -: |
 |[20180408-102900](https://drive.google.com/uc?export=download&id=12DYdlLesBl3Kk51EtJsyPS8qA7fErWDX) (111MB)|0.9905|CASIA-Webface|
 |[20180402-114759](https://drive.google.com/uc?export=download&id=1TDZVEBudGaEd5POR5X4ZsMvdsh1h68T1) (107MB)|0.9965|VGGFace2|
 
-There is no need to manually download the pretrained `state_dict`'s; they are downloaded automatically on model instantiation. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
+There is no need to manually download the pretrained state_dict's; they are downloaded automatically on model instantiation and cached for future use in the torch cache. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```python
 from models.inception_resnet_v1 import InceptionResnetV1
@@ -42,29 +79,31 @@ model = InceptionResnetV1().eval()
 model = InceptionResnetV1(classify=True, num_classes=1001).eval()
 ```
 
+Both pretrained models were trained on 160x160 px images, so will perform best if applied to images resized to this shape. For best results, images should also be cropped to the face using MTCNN (see below).
+
 By default, the above models will return 512-dimensional embeddings of images. To enable classification instead, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`. For VGGFace2, the pretrained model will output probability vectors of length 8631, and for CASIA-Webface probability vectors of length 10575.
 
 ## Complete detection and recognition pipeline
 
-Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model. 
+Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model.
 
-Note that for real-world datasets, the below code should be modified to control batch sizes being passed to the Resnet. 
+The example code at [models/utils/example.py](models/utils/example.py) provides a complete example pipeline utilizing datasets, dataloaders, and optional GPU processing. From the repo directory, this can be run with `python -c "import models.utils.example"`.
 
-See [models/utils/example.py](models/utils/example.py). This can be run with `python -c "import models.utils.example"`.
+Note that for real-world datasets, code should be modified to control batch sizes being passed to the Resnet, particularly if being processed on a GPU. Furthermore, for repeated testing, it is best to separate face detection (using MTCNN) from embedding or classification (using InceptionResnetV1), as detection can then be performed a single time and detected faces saved for future use.
 
-## Use this repo in your own project
+## Use this repo in your own git project
 
-To use pretrained MTCNN and Inception Resnet V1 models in your own project, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
+To use pretrained MTCNN and Inception Resnet V1 models in your own git repo, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
 
 `git submodule add https://github.com/timesler/facenet-pytorch.git facenet_pytorch`
 
 Models can then be instantiated simply with the following:
 
 ```python
-import facenet_pytorch as fp
+from facenet_pytorch import MTCNN, InceptionResnetV1
 
-mtcnn = fp.MTCNN()
-resnet = fp.InceptionResnetV1(pretrained='vggface2').eval()
+mtcnn = MTCNN()
+resnet = InceptionResnetV1(pretrained='vggface2').eval()
 ```
 
 ## Conversion of parameters from Tensorflow to Pytorch
@@ -105,8 +144,12 @@ In order to re-run the conversion of tensorflow parameters into the pytorch mode
 
 ## References
 
-Q. Cao, L. Shen, W. Xie, O. M. Parkhi, A. Zisserman. _VGGFace2: A dataset for recognising face across pose and age_, International Conference on Automatic Face and Gesture Recognition, 2018. [PDF](http://www.robots.ox.ac.uk/~vgg/publications/2018/Cao18/cao18.pdf)
+1. David Sandberg's facenet repo: [https://github.com/davidsandberg/facenet](https://github.com/davidsandberg/facenet)
 
-D. Yi, Z. Lei, S. Liao and S. Z. Li. _CASIAWebface: Learning Face Representation from Scratch_, arXiv:1411.7923v1, 2014. [PDF](https://arxiv.org/pdf/1411.7923)
+1. F. Schroff, D. Kalenichenko, J. Philbin. _FaceNet: A Unified Embedding for Face Recognition and Clustering_, arXiv:1503.03832, 2015. [PDF](https://arxiv.org/pdf/1503.03832)
 
-K. Zhang, Z. Zhang, Z. Li and Y. Qiao. _Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks_, IEEE Signal Processing Letters, 2016. [PDF](https://kpzhang93.github.io/MTCNN_face_detection_alignment/paper/spl.pdf)
+1. Q. Cao, L. Shen, W. Xie, O. M. Parkhi, A. Zisserman. _VGGFace2: A dataset for recognising face across pose and age_, International Conference on Automatic Face and Gesture Recognition, 2018. [PDF](http://www.robots.ox.ac.uk/~vgg/publications/2018/Cao18/cao18.pdf)
+
+1. D. Yi, Z. Lei, S. Liao and S. Z. Li. _CASIAWebface: Learning Face Representation from Scratch_, arXiv:1411.7923, 2014. [PDF](https://arxiv.org/pdf/1411.7923)
+
+1. K. Zhang, Z. Zhang, Z. Li and Y. Qiao. _Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks_, IEEE Signal Processing Letters, 2016. [PDF](https://kpzhang93.github.io/MTCNN_face_detection_alignment/paper/spl.pdf)

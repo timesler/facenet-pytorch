@@ -182,13 +182,17 @@ class InceptionResnetV1(nn.Module):
     """Inception Resnet V1 model with optional loading of pretrained weights.
 
     Model parameters can be loaded based on pretraining on the VGGFace2 or CASIA-Webface
-    datasets.
+    datasets. Pretrained state_dicts are automatically downloaded on model instantiation if
+    requested and cached in the torch cache. Subsequent instantiations use the cache rather than
+    redownloading.
     
     Keyword Arguments:
-        pretrained {str} -- Pretraining dataset. Either 'vggface2' or 'casia-webface'. (default: {None})
-        classify {bool} -- Whether the model should output classification probabilities or feature.
-            embeddings (default: {False})
-        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set. (default: {1001})
+        pretrained {str} -- Optional pretraining dataset. Either 'vggface2' or 'casia-webface'.
+            (default: {None})
+        classify {bool} -- Whether the model should output classification probabilities or feature
+            embeddings. (default: {False})
+        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set, in which
+            case the number of classes is set to that used for training. (default: {1001})
     """
     def __init__(self, pretrained=None, classify=False, num_classes=1001):
         super().__init__()
@@ -251,6 +255,14 @@ class InceptionResnetV1(nn.Module):
             load_weights(self, pretrained)
 
     def forward(self, x):
+        """Calculate embeddings or probabilities given a batch of input image tensors.
+        
+        Arguments:
+            x {torch.tensor} -- Batch of image tensors representing faces.
+        
+        Returns:
+            torch.tensor -- Batch of embeddings or softmax probabilities.
+        """
         x = self.conv2d_1a(x)
         x = self.conv2d_2a(x)
         x = self.conv2d_2b(x)
