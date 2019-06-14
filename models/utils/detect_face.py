@@ -1,5 +1,7 @@
 import torch
+import torchvision.transforms.functional as F
 import numpy as np
+import os
 resize_mod = 'cv2'
 try:
     from cv2 import resize, INTER_AREA
@@ -229,3 +231,28 @@ def imresample(img, sz):
     resize_args = {'interpolation': INTER_AREA} if resize_mod == 'cv2' else {'preserve_range': True}
     im_data = resize(img, out_shape, **resize_args)
     return im_data
+
+
+def extract_face(img, box, image_size, margin, save_path):
+    prob = box[4]
+    margin = [
+        margin * (box[2] - box[0]) / image_size,
+        margin * (box[3] - box[1]) / image_size
+    ]
+    box = [
+        int(max(box[0] - margin[0]/2, 0)),
+        int(max(box[1] - margin[1]/2, 0)),
+        int(min(box[2] + margin[0]/2, img.size[0])),
+        int(min(box[3] + margin[1]/2, img.size[1]))
+    ]
+
+    face = img.crop(box).resize((image_size, image_size), 2)
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path)+'/', exist_ok=True)
+        save_args = {'compress_level': 0} if '.png' in save_path else {}
+        face.save(save_path, **save_args)
+
+    face = F.to_tensor(np.float32(face))
+    
+    return face, prob

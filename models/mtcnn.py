@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import os
 
-from .utils.detect_face import detect_face
+from .utils.detect_face import detect_face, extract_face
 
 
 class PNet(nn.Module):
@@ -172,21 +172,19 @@ class MTCNN(nn.Module):
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
         prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
-        keep_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
+        select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
             If False, the face with the highest detect probability is returned. (default: {True})
+        keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
+            select_largest parameter. If a save_path is specified, the first face is saved to that
+            path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
         device {torch.device} -- The device on which to run neural net passes. Image tensors and
             models are copied to this device before running forward passes. (default: {None})
-    
-    Returns:
-        Union[torch.Tensor, (torch.tensor, torch.Tensor)]  -- If detected, cropped image of a
-            single face with dimensions 3 x image_size x image_size. Optionally, the probability
-            that a face was detected.
     """
 
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True,
-        keep_largest=True, device=None
+        select_largest=True, keep_all=False, device=None
     ):
         super().__init__()
 
@@ -196,7 +194,8 @@ class MTCNN(nn.Module):
         self.thresholds = thresholds
         self.factor = factor
         self.prewhiten = prewhiten
-        self.keep_largest = keep_largest
+        self.select_largest = select_largest
+        self.keep_all = keep_all
         
         self.pnet = PNet()
         self.rnet = RNet()
@@ -216,13 +215,17 @@ class MTCNN(nn.Module):
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
-                self.prewhiten=True, although the returned tensor is prewhitened, the saved face image
-                is not, so it is a true representation of the face in the input image. (default: {None})
-            return_prob {bool} -- Whether or not to return the detection probability. (default: {False})
+                self.prewhiten=True, although the returned tensor is prewhitened, the saved face
+                image is not, so it is a true representation of the face in the input image.
+                (default: {None})
+            return_prob {bool} -- Whether or not to return the detection probability.
+                (default: {False})
         
         Returns:
-            Union[torch.Tensor, (torch.tensor, float)] -- tensor representing the cropped image, with 
-                an optional detection probability.
+            Union[torch.Tensor, (torch.tensor, float)] -- If detected, cropped image of a
+            single face with dimensions 3 x image_size x image_size. Optionally, the probability
+            that a face was detected. If self.keep_all is True, n detected faces are returned in an
+            n x 3 x image_size x image_size tensor.
         """
         with torch.no_grad():
             boxes = detect_face(
@@ -239,41 +242,40 @@ class MTCNN(nn.Module):
                 else:
                     return None
 
-            keep = 0
-            if self.keep_largest:
-                keep = np.argmax((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))
-            face = boxes[keep]
-    
-            prob = face[4]
-            margin = [
-                self.margin * img.size[0] / self.image_size,
-                self.margin * img.size[1] / self.image_size
-            ]
-            box = [
-                int(max(face[0] - margin[0]/2, 0)),
-                int(max(face[1] - margin[1]/2, 0)),
-                int(min(face[2] + margin[0]/2, img.size[0])),
-                int(min(face[3] + margin[1]/2, img.size[1]))
-            ]
+            if self.select_largest:
+                boxes = boxes[
+                    np.argsort(
+                        (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+                    )[::-1]
+                ]
 
-            img = img.crop(box).resize((self.image_size, self.image_size), Image.BILINEAR)
+            if not self.keep_all:
+                boxes = boxes[[0]]
 
-            if save_path is not None:
-                os.makedirs(os.path.dirname(save_path)+'/', exist_ok=True)
-                save_args = {}
-                if '.png' in save_path:
-                    save_args['compress_level'] = 0
-                img.save(save_path, **save_args)
-
-            img = F.to_tensor(np.float32(img))
+            faces = []
+            probs = []
+            for i, box in enumerate(boxes):
+                face_path = save_path
+                if save_path is not None and i > 0:
+                    save_name, ext = os.path.splitext(save_path)
+                    face_path = save_name + str(i + 1) + ext
+                
+                face, prob = extract_face(img, box, self.image_size, self.margin, face_path)
+                if self.prewhiten:
+                    face = prewhiten(face)
+                faces.append(face)
+                probs.append(prob)
             
-            if self.prewhiten:
-                img = prewhiten(img)
+            if self.keep_all:
+                faces = torch.stack(faces)
+            else:
+                faces = faces[0]
+                probs = probs[0]
 
             if return_prob:
-                return img, prob
+                return faces, probs
             else:
-                return img
+                return faces
 
 
 def prewhiten(x):
