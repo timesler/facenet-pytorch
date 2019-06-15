@@ -236,8 +236,8 @@ def imresample(img, sz):
 def extract_face(img, box, image_size, margin, save_path):
     prob = box[4]
     margin = [
-        margin * (box[2] - box[0]) / image_size,
-        margin * (box[3] - box[1]) / image_size
+        margin * (box[2] - box[0]) / (image_size - margin),
+        margin * (box[3] - box[1]) / (image_size - margin)
     ]
     box = [
         int(max(box[0] - margin[0]/2, 0)),
