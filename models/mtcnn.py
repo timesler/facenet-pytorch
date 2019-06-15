@@ -238,7 +238,7 @@ class MTCNN(nn.Module):
             if len(boxes) == 0:
                 print('Face not found')
                 if return_prob:
-                    return None, 0
+                    return None, [None] if self.keep_all else None
                 else:
                     return None
 
@@ -258,7 +258,7 @@ class MTCNN(nn.Module):
                 face_path = save_path
                 if save_path is not None and i > 0:
                     save_name, ext = os.path.splitext(save_path)
-                    face_path = save_name + str(i + 1) + ext
+                    face_path = save_name + '_' + str(i + 1) + ext
                 
                 face, prob = extract_face(img, box, self.image_size, self.margin, face_path)
                 if self.prewhiten:

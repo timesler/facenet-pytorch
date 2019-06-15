@@ -16,11 +16,17 @@ for c in checkpoints:
     print('Removing {}'.format(c))
     os.remove(c)
 
+crop_files = glob.glob('data/test_images_aligned/**/*.png')
+for c in crop_files:
+    print('Removing {}'.format(c))
+    os.remove(c)
+
 
 def get_image(path, trans):
     img = Image.open(path)
     img = trans(img)
     return img
+
 
 trans = transforms.Compose([
     transforms.Resize(512)
