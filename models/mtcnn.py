@@ -220,10 +220,10 @@ class MTCNN(nn.Module):
                 (default: {False})
         
         Returns:
-            Union[torch.Tensor, (torch.tensor, float)] -- If detected, cropped image of a
-            single face with dimensions 3 x image_size x image_size. Optionally, the probability
-            that a face was detected. If self.keep_all is True, n detected faces are returned in an
-            n x 3 x image_size x image_size tensor.
+            Union[torch.Tensor, Tuple(int, int, int, int), (torch.tensor, float)] -- If detected, cropped image of a
+            single face with dimensions 3 x image_size x image_size and bounding box of image
+            (left, top, right, bottom). Optionally, the probability that a face was detected. If self.keep_all is True,
+            n detected faces are returned in an n x 3 x image_size x image_size tensor and list of bounding boxes.
         """
         with torch.no_grad():
             boxes = detect_face(
@@ -234,7 +234,6 @@ class MTCNN(nn.Module):
             )
 
             if len(boxes) == 0:
-                print('Face not found')
                 if return_prob:
                     return None, None, [None] if self.keep_all else None
                 else:
