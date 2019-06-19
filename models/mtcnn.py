@@ -1,7 +1,5 @@
 import torch
 from torch import nn
-import torchvision.transforms.functional as F
-from PIL import Image
 import numpy as np
 import os
 
@@ -35,8 +33,8 @@ class PNet(nn.Module):
             state_dict_path = os.path.join(os.path.dirname(__file__), '../data/pnet.pt')
             state_dict = torch.load(state_dict_path)
             self.load_state_dict(state_dict)
-    
-    def forward(self, x):  
+
+    def forward(self, x):
         x = self.conv1(x)
         x = self.prelu1(x)
         x = self.pool1(x)
@@ -196,7 +194,7 @@ class MTCNN(nn.Module):
         self.prewhiten = prewhiten
         self.select_largest = select_largest
         self.keep_all = keep_all
-        
+
         self.pnet = PNet()
         self.rnet = RNet()
         self.onet = ONet()
@@ -205,7 +203,7 @@ class MTCNN(nn.Module):
         if device is not None:
             self.device = device
             self.to(device)
-            
+
 
     def forward(self, img, save_path=None, return_prob=False):
         """Run MTCNN face detection on a PIL image.
@@ -238,9 +236,9 @@ class MTCNN(nn.Module):
             if len(boxes) == 0:
                 print('Face not found')
                 if return_prob:
-                    return None, [None] if self.keep_all else None
+                    return None, None, [None] if self.keep_all else None
                 else:
-                    return None
+                    return None, None
 
             if self.select_largest:
                 boxes = boxes[
@@ -259,13 +257,13 @@ class MTCNN(nn.Module):
                 if save_path is not None and i > 0:
                     save_name, ext = os.path.splitext(save_path)
                     face_path = save_name + '_' + str(i + 1) + ext
-                
+
                 face, prob = extract_face(img, box, self.image_size, self.margin, face_path)
                 if self.prewhiten:
                     face = prewhiten(face)
                 faces.append(face)
                 probs.append(prob)
-            
+
             if self.keep_all:
                 faces = torch.stack(faces)
             else:
@@ -273,9 +271,9 @@ class MTCNN(nn.Module):
                 probs = probs[0]
 
             if return_prob:
-                return faces, probs
+                return faces, boxes, probs
             else:
-                return faces
+                return faces, boxes
 
 
 def prewhiten(x):
