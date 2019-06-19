@@ -206,7 +206,9 @@ class MTCNN(nn.Module):
 
 
     def forward(self, img, save_path=None, return_prob=False):
-        """Run MTCNN face detection on a PIL image.
+        """Run MTCNN face detection on a PIL image. This method performs both detection and
+        extraction of faces, returning tensors representing detected faces rather than the bounding
+        boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
             img {PIL.Image} -- A PIL image.
@@ -220,48 +222,41 @@ class MTCNN(nn.Module):
                 (default: {False})
         
         Returns:
-            Union[torch.Tensor, Tuple(int, int, int, int), (torch.tensor, float)] -- If detected, cropped image of a
-            single face with dimensions 3 x image_size x image_size and bounding box of image
-            (left, top, right, bottom). Optionally, the probability that a face was detected. If self.keep_all is True,
-            n detected faces are returned in an n x 3 x image_size x image_size tensor and list of bounding boxes.
+            Union[torch.Tensor, tuple(torch.tensor, float)] -- If detected, cropped image of a face
+                with dimensions 3 x image_size x image_size. Optionally, the probability that a
+                face was detected. If self.keep_all is True, n detected faces are returned in an
+                n x 3 x image_size x image_size tensor with an optional list of detection
+                probabilities.
+
+        Example:
+        >>> from facenet_pytorch import MTCNN
+        >>> mtcnn = MTCNN()
+        >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
+
         with torch.no_grad():
-            boxes = detect_face(
-                img, self.min_face_size,
-                self.pnet, self.rnet, self.onet,
-                self.thresholds, self.factor,
-                self.device
-            )
+            boxes, probs = self.detect(img)
 
-            if len(boxes) == 0:
+            if boxes is None:
                 if return_prob:
-                    return None, None, [None] if self.keep_all else None
+                    return None, [None] if self.keep_all else None
                 else:
-                    return None, None
-
-            if self.select_largest:
-                boxes = boxes[
-                    np.argsort(
-                        (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-                    )[::-1]
-                ]
+                    return None
 
             if not self.keep_all:
                 boxes = boxes[[0]]
 
             faces = []
-            probs = []
             for i, box in enumerate(boxes):
                 face_path = save_path
                 if save_path is not None and i > 0:
                     save_name, ext = os.path.splitext(save_path)
                     face_path = save_name + '_' + str(i + 1) + ext
 
-                face, prob = extract_face(img, box, self.image_size, self.margin, face_path)
+                face = extract_face(img, box, self.image_size, self.margin, face_path)
                 if self.prewhiten:
                     face = prewhiten(face)
                 faces.append(face)
-                probs.append(prob)
 
             if self.keep_all:
                 faces = torch.stack(faces)
@@ -270,9 +265,60 @@ class MTCNN(nn.Module):
                 probs = probs[0]
 
             if return_prob:
-                return faces, boxes, probs
+                return faces, probs
             else:
-                return faces, boxes
+                return faces
+
+    def detect(self, img):
+        """Detect all faces in PIL image and return bounding boxes.
+
+        This method is used by the forward method and is also useful for face detection tasks
+        that require lower-level handling of bounding boxes (e.g., face tracking). The
+        functionality of the forward function can be emulated by using this method followed by
+        the extract_face() function.
+        
+        Arguments:
+            img {PIL.Image} -- A PIL image.
+        
+        Returns:
+            tuple(numpy.ndarray, list) -- For N detected faces, a tuple containing an
+                Nx4 array of bounding boxes and a length N list of detection probabilities.
+                Returned boxes will be sorted in descending order by detection probability if
+                self.select_largest=False, otherwise the largest face will be returned first.
+
+        Example:
+        >>> from PIL import Image, ImageDraw
+        >>> from facenet_pytorch import MTCNN, extract_face
+        >>> mtcnn = MTCNN(keep_all=True)
+        >>> boxes, probs = mtcnn.detect(img)
+        >>> # Draw boxes and save faces
+        >>> img_draw = img.copy()
+        >>> draw = ImageDraw.Draw(img_draw)
+        >>> for i, box in enumerate(boxes):
+        ...     draw.rectangle(box.tolist())
+        ...     extract_face(img, box, save_path='detected_face_{}.png'.format(i))
+        >>> img_draw.save('annotated_faces.png')
+        """
+
+        with torch.no_grad():
+            boxes = detect_face(
+                img, self.min_face_size,
+                self.pnet, self.rnet, self.onet,
+                self.thresholds, self.factor,
+                self.device
+            )
+
+        if len(boxes) == 0:
+            return None, [None]
+
+        if self.select_largest:
+            boxes = boxes[
+                np.argsort(
+                    (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+                )[::-1]
+            ]
+        
+        return boxes[:, 0:4], boxes[:, 4].tolist()
 
 
 def prewhiten(x):
