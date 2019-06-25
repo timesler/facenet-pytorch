@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageDraw
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
@@ -10,6 +10,7 @@ import glob
 
 from models.mtcnn import MTCNN, prewhiten
 from models.inception_resnet_v1 import InceptionResnetV1, get_torch_home
+from models.utils.detect_face import extract_face
 
 checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
 for c in checkpoints:
@@ -114,6 +115,28 @@ resnet_pt = InceptionResnetV1(pretrained=ds, classify=True).eval()
 prob = resnet_pt(aligned)
 if sys.platform != 'win32':
     assert prob.mean().detach().item() - 9.4563e-05 < 1e-5
+
+# MULTI-FACE TEST
+
+mtcnn = MTCNN(keep_all=True)
+img = Image.open('data/multiface.jpg')
+img_detected = Image.open('data/multiface_detected.png')
+boxes, probs = mtcnn.detect(img)
+
+draw = ImageDraw.Draw(img)
+for i, box in enumerate(boxes):
+    draw.rectangle(box.tolist())
+
+mtcnn(img, save_path='data/tmp.png')
+tmp_files = glob.glob('data/tmp*')
+for f in tmp_files:
+    os.remove(f)
+
+# NO-FACE TEST
+
+img = Image.new('RGB', (512, 512))
+mtcnn(img)
+mtcnn(img, return_prob=True)
 
 # EXAMPLE TEST
 
