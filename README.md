@@ -15,7 +15,11 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
 
 ## Quick start
 
-1. Clone this repo, removing the '-' to allow python imports:
+1. Either install using pip:
+    ```bash
+    pip install facenet-pytorch
+    ```
+    or clone this repo, removing the '-' to allow python imports:
     ```git
     git clone https://github.com/timesler/facenet-pytorch.git facenet_pytorch
     ```
@@ -64,7 +68,7 @@ The following models have been ported to pytorch (with links to download pytorch
 There is no need to manually download the pretrained state_dict's; they are downloaded automatically on model instantiation and cached for future use in the torch cache. To use an Inception Resnet (V1) model for facial recognition/identification in pytorch, use:
 
 ```python
-from models.inception_resnet_v1 import InceptionResnetV1
+from facenet_pytorch import InceptionResnetV1
 
 # For a model pretrained on VGGFace2
 model = InceptionResnetV1(pretrained='vggface2').eval()
@@ -96,6 +100,10 @@ Note that for real-world datasets, code should be modified to control batch size
 To use pretrained MTCNN and Inception Resnet V1 models in your own git repo, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
 
 `git submodule add https://github.com/timesler/facenet-pytorch.git facenet_pytorch`
+
+Alternatively, the code can be installed as a packed using pip:
+
+`pip install facenet-pytorch`
 
 Models can then be instantiated simply with the following:
 
