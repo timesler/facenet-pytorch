@@ -45,10 +45,10 @@ matrix:
       before_install: choco install python --version 3.5.4
       env: PATH=/c/Python35:/c/Python35/Scripts:$PATH
       
-install: pip3 install -r tests/requirements.txt || pip3 install --user -r tests/requirements.txt
+install: pip3 install -r tests/travis_requirements.txt || pip3 install --user -r tests/travis_requirements.txt
 script:
   - python3 --version || python --version
-  - echo "import tests.test" > test.py
+  - echo "import tests.travis_test" > test.py
   - coverage run --source models test.py && coverage report
 
 after_success:

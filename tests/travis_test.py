@@ -1,3 +1,8 @@
+"""
+The following code is intended to be run only by travis for continuius intengration and testing
+purposes. For implementation examples see notebooks in the examples folder.
+"""
+
 from PIL import Image, ImageDraw
 import torch
 from torch.utils.data import DataLoader
@@ -137,9 +142,3 @@ for f in tmp_files:
 img = Image.new('RGB', (512, 512))
 mtcnn(img)
 mtcnn(img, return_prob=True)
-
-# EXAMPLE TEST
-
-print('\nExample code:')
-
-from models.utils import example
