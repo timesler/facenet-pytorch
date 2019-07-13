@@ -91,9 +91,7 @@ By default, the above models will return 512-dimensional embeddings of images. T
 
 Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model.
 
-The example code at [models/utils/example.py](models/utils/example.py) provides a complete example pipeline utilizing datasets, dataloaders, and optional GPU processing. From the repo directory, this can be run with `python -c "import models.utils.example"`.
-
-Note that for real-world datasets, code should be modified to control batch sizes being passed to the Resnet, particularly if being processed on a GPU. Furthermore, for repeated testing, it is best to separate face detection (using MTCNN) from embedding or classification (using InceptionResnetV1), as detection can then be performed a single time and detected faces saved for future use.
+The example code at [examples/infer.ipynb](examples/infer.ipynb) provides a complete example pipeline utilizing datasets, dataloaders, and optional GPU processing.
 
 ## Use this repo in your own git project
 
@@ -101,7 +99,7 @@ To use pretrained MTCNN and Inception Resnet V1 models in your own git repo, I r
 
 `git submodule add https://github.com/timesler/facenet-pytorch.git facenet_pytorch`
 
-Alternatively, the code can be installed as a packed using pip:
+Alternatively, the code can be installed as a package using pip:
 
 `pip install facenet-pytorch`
 
