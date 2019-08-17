@@ -97,6 +97,8 @@ The example code at [examples/infer.ipynb](examples/infer.ipynb) provides a comp
 
 MTCNN can be used to build a face tracking system (using the `MTCNN.detect()` method). A full face tracking example can be found at [examples/face_tracking.ipynb](examples/face_tracking.ipynb).
 
+![](examples/tracked.gif)
+
 ## Use this repo in your own git project
 
 To use pretrained MTCNN and Inception Resnet V1 models in your own git repo, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
