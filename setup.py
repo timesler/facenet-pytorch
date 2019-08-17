@@ -5,7 +5,7 @@ with open('facenet_pytorch/README.md', 'r') as f:
 
 setuptools.setup(
     name='facenet-pytorch',
-    version='0.1.0',
+    version='0.2.1',
     author='Tim Esler',
     author_email='tim.esler@gmail.com',
     description='Pretrained Pytorch face detection and recognition models',

@@ -191,8 +191,9 @@ class InceptionResnetV1(nn.Module):
             (default: {None})
         classify {bool} -- Whether the model should output classification probabilities or feature
             embeddings. (default: {False})
-        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set, in which
-            case the number of classes is set to that used for training. (default: {1001})
+        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set, and 
+            num_classes not equal to that used for the pretrained model, the final linear layer
+            will be randomly initialized. (default: {1001})
     """
     def __init__(self, pretrained=None, classify=False, num_classes=1001):
         super().__init__()
@@ -202,10 +203,11 @@ class InceptionResnetV1(nn.Module):
         self.classify = classify
         self.num_classes = num_classes
 
+        tmp_classes = self.num_classes
         if pretrained == 'vggface2':
-            self.num_classes = 8631
+            tmp_classes = 8631
         elif pretrained == 'casia-webface':
-            self.num_classes = 10575
+            tmp_classes = 10575
         
         # Define layers
         self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
@@ -248,11 +250,14 @@ class InceptionResnetV1(nn.Module):
         self.last_linear = nn.Linear(1792, 512, bias=False)
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
 
-        self.logits = nn.Linear(512, self.num_classes)
+        self.logits = nn.Linear(512, tmp_classes)
         self.softmax = nn.Softmax(dim=1)
 
         if pretrained is not None:
             load_weights(self, pretrained)
+        
+        if self.num_classes != tmp_classes:
+            self.logits = nn.Linear(512, self.num_classes)
 
     def forward(self, x):
         """Calculate embeddings or probabilities given a batch of input image tensors.
@@ -282,7 +287,6 @@ class InceptionResnetV1(nn.Module):
         x = F.normalize(x, p=2, dim=1)
         if self.classify:
             x = self.logits(x)
-            x = self.softmax(x)
         return x
 
 
