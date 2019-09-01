@@ -194,8 +194,9 @@ class InceptionResnetV1(nn.Module):
         num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set, and 
             num_classes not equal to that used for the pretrained model, the final linear layer
             will be randomly initialized. (default: {1001})
+        dropout_prob {float} -- Dropout probability. (default: {1001})
     """
-    def __init__(self, pretrained=None, classify=False, num_classes=1001):
+    def __init__(self, pretrained=None, classify=False, num_classes=1001, dropout_prob=0.6):
         super().__init__()
 
         # Set simple attributes
@@ -247,11 +248,10 @@ class InceptionResnetV1(nn.Module):
         )
         self.block8 = Block8(noReLU=True)
         self.avgpool_1a = nn.AdaptiveAvgPool2d(1)
+        self.dropout = nn.Dropout(dropout_prob)
         self.last_linear = nn.Linear(1792, 512, bias=False)
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
-
         self.logits = nn.Linear(512, tmp_classes)
-        self.softmax = nn.Softmax(dim=1)
 
         if pretrained is not None:
             load_weights(self, pretrained)
@@ -282,6 +282,7 @@ class InceptionResnetV1(nn.Module):
         x = self.repeat_3(x)
         x = self.block8(x)
         x = self.avgpool_1a(x)
+        x = self.dropout(x)
         x = self.last_linear(x.view(x.shape[0], -1))
         x = self.last_bn(x)
         x = F.normalize(x, p=2, dim=1)
