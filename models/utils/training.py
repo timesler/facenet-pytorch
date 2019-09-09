@@ -110,7 +110,7 @@ def pass_epoch(
             
         if writer is not None and model.training:
             if writer.iteration % writer.interval == 0:
-                writer.add_scalars('loss', {mode: loss_batch.detach()}, writer.iteration)
+                writer.add_scalars('loss', {mode: loss_batch.detach().cpu()}, writer.iteration)
                 for metric_name, metric_batch in metrics_batch.items():
                     writer.add_scalars(metric_name, {mode: metric_batch}, writer.iteration)
             writer.iteration += 1

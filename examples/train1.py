@@ -1,37 +1,63 @@
-# Face detection and recognition training pipeline
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Face detection and recognition training pipeline
 # 
-# The following example illustrates how to use the `facenet_pytorch` python package to perform face detection and recogition on an image dataset using an Inception Resnet V1 pretrained on the VGGFace2 dataset.
+# The following example illustrates how to use the `facenet_pytorch` python package to 
+# perform face detection and recogition on an image dataset using an Inception Resnet V1 
+# pretrained on the VGGFace2 dataset.
+# 
+# The following Pytorch methods are included:
+# * Datasets
+# * Dataloaders
+# * GPU/CPU processing
+
+# In[1]:
+
 
 from facenet_pytorch import MTCNN, InceptionResnetV1, prewhiten, training
 import torch
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.tensorboard import SummaryWriter
 from torch import optim
 from torch.optim.lr_scheduler import MultiStepLR
-from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
 import os
 
-# Define run parameters
+
+# #### Define run parameters
+
+# In[2]:
+
 
 data_dir = '/mnt/windows/Users/times/Data/vggface2/test'
-batch_size = 48
+batch_size = 32
 epochs = 8
 workers = 2
 
-# Determine if an nvidia GPU is available
+
+# #### Determine if an nvidia GPU is available
+
+# In[3]:
+
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Running on device: {}'.format(device))
 
-# Define MTCNN module
-# Default params shown for illustration, but not needed.
-# Note that, since MTCNN is a collection of neural nets and other code, the
-# device must be passed in the following way to enable copying of objects when
-# needed internally.
+
+# #### Define MTCNN module
+# 
+# Default params shown for illustration, but not needed. Note that, since MTCNN is a collection 
+# of neural nets and other code, the device must be passed in the following way to enable 
+# copying of objects when needed internally.
+# 
 # See `help(MTCNN)` for more details.
+
+# In[4]:
+
 
 # mtcnn = MTCNN(
 #     image_size=160, margin=0, min_face_size=20,
@@ -40,38 +66,57 @@ print('Running on device: {}'.format(device))
 # )
 
 
-# Perfom MTCNN facial detection
+# #### Perfom MTCNN facial detection
+# 
 # Iterate through the DataLoader object and obtained cropped faces.
+
+# In[ ]:
+
+
+# Use one image at a time
+def collate_fn(x):
+    return x[0]
 
 dataset = datasets.ImageFolder(data_dir)
 dataset.idx_to_class = {i:c for c, i in dataset.class_to_idx.items()}
-loader = DataLoader(dataset, collate_fn=lambda x: x[0], num_workers=workers, shuffle=False)
+loader = DataLoader(dataset, collate_fn=collate_fn, num_workers=workers, shuffle=False)
 
-# timer = training.BatchTimer(per_sample=False)
 # for i, (x, y) in enumerate(loader):
-#     print(f'\rImages processed: {i + 1:8d} of {len(loader):8d} | fps: {timer():.0f}', end='')
+#     print(f'\rImages processed: {i + 1} of {len(loader)}', end='')
 #     save_dir = os.path.join(data_dir + '_cropped', dataset.idx_to_class[y])
 #     os.makedirs(save_dir, exist_ok=True)
 #     filename = f'{len(os.listdir(save_dir)):05n}.png'
-#     mtcnn(x, save_path=os.path.join(save_dir, filename))
+#     save_path = os.path.join(save_dir, filename)
+#     if not os.path.exists(save_path):
+#         mtcnn(x, save_path=save_path)
+
+
+# #### Define Inception Resnet V1 module
+# 
+# Set classify=True for classifier.
+# 
+# See `help(InceptionResnetV1)` for more details.
+
+# In[ ]:
+
 
 # del mtcnn
-
-# Define Inception Resnet V1 module
-# Set classify=True for classifier.
-# See `help(InceptionResnetV1)` for more details.
+torch.cuda.empty_cache()
 
 resnet = InceptionResnetV1(
     classify=True,
-    num_classes=len(dataset.class_to_idx)
+    num_classes=len(dataset.class_to_idx),
+    dropout_prob=0.6
 ).to(device)
 
 
-# Define optimizer, scheduler, dataset, and dataloader
+# #### Define optimizer, scheduler, dataset, and dataloader
 
-optimizer = optim.Adam(resnet.parameters(), lr=0.005, weight_decay=2e-4)
-# optimizer = optim.Adam(resnet.parameters(), lr=0.001, weight_decay=5e-4)
-scheduler = MultiStepLR(optimizer, [5, 10])
+# In[ ]:
+
+
+optimizer = optim.Adam(resnet.parameters(), lr=0.05, weight_decay=5e-4)
+scheduler = MultiStepLR(optimizer, [3, 6])
 
 trans_train = transforms.Compose([
     transforms.RandomHorizontalFlip(),
@@ -84,12 +129,14 @@ trans_val = transforms.Compose([
     transforms.ToTensor(),
     prewhiten,
 ])
+
 train_dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans_train)
 val_dataset = datasets.ImageFolder(data_dir + '_cropped', transform=trans_val)
+
 img_inds = np.arange(len(train_dataset))
 np.random.shuffle(img_inds)
-train_inds = img_inds[:int(0.8 * len(img_inds))]
-val_inds = img_inds[int(0.8 * len(img_inds)):]
+train_inds = img_inds[:int(0.99 * len(img_inds))]
+val_inds = img_inds[int(0.99 * len(img_inds)):]
 
 train_loader = DataLoader(
     train_dataset,
@@ -105,7 +152,10 @@ val_loader = DataLoader(
 )
 
 
-# Define loss and evaluation functions
+# #### Define loss and evaluation functions
+
+# In[ ]:
+
 
 loss_fn = torch.nn.CrossEntropyLoss()
 metrics = {
@@ -114,13 +164,16 @@ metrics = {
 }
 
 
-# Train model
+# #### Train model
 
-writer = SummaryWriter()
-writer.iteration, writer.interval = 0, 10
+# In[ ]:
+
 
 print(f'\n\nInitial')
 print('-' * 10)
+writer = SummaryWriter()
+writer.iteration, writer.interval = 0, 10
+
 resnet.eval()
 training.pass_epoch(
     resnet, loss_fn, val_loader,
@@ -129,7 +182,7 @@ training.pass_epoch(
 )
 
 for epoch in range(epochs):
-    print(f'\nEpoch {epoch + 1}/{epochs}')
+    print(f'\n\nEpoch {epoch + 1}/{epochs}')
     print('-' * 10)
 
     resnet.train()
@@ -139,9 +192,6 @@ for epoch in range(epochs):
         writer=writer
     )
 
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
     resnet.eval()
     training.pass_epoch(
         resnet, loss_fn, val_loader,
@@ -149,4 +199,3 @@ for epoch in range(epochs):
         writer=writer
     )
 
-writer.close()
