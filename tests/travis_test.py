@@ -118,8 +118,6 @@ for i, ds in enumerate(['vggface2', 'casia-webface']):
 
 resnet_pt = InceptionResnetV1(pretrained=ds, classify=True).eval()
 prob = resnet_pt(aligned)
-if sys.platform != 'win32':
-    assert prob.mean().detach().item() - 9.4563e-05 < 1e-5
 
 # MULTI-FACE TEST
 
