@@ -191,10 +191,10 @@ class InceptionResnetV1(nn.Module):
             (default: {None})
         classify {bool} -- Whether the model should output classification probabilities or feature
             embeddings. (default: {False})
-        num_classes {int} -- Number of output classes. Ignored if 'pretrained' is set, and 
-            num_classes not equal to that used for the pretrained model, the final linear layer
-            will be randomly initialized. (default: {1001})
-        dropout_prob {float} -- Dropout probability. (default: {1001})
+        num_classes {int} -- Number of output classes. If 'pretrained' is set and num_classes not
+            equal to that used for the pretrained model, the final linear layer will be randomly
+            initialized. (default: {1001})
+        dropout_prob {float} -- Dropout probability. (default: {0.6})
     """
     def __init__(self, pretrained=None, classify=False, num_classes=1001, dropout_prob=0.6):
         super().__init__()
