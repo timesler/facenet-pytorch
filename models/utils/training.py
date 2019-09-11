@@ -15,9 +15,9 @@ class Logger(object):
             self.fn = lambda x, i: x
 
     def __call__(self, loss, metrics, i):
-        track_str = f'\r{self.mode} | {i + 1:5d}/{self.length:<5d}| '
-        loss_str = f'loss: {self.fn(loss, i):9.4f} | '
-        metric_str = ' | '.join(f'{k}: {self.fn(v, i):9.4f}' for k, v in metrics.items())
+        track_str = '\r{} | {:5d}/{:<5d}| '.format(self.mode, i + 1, self.length)
+        loss_str = 'loss: {:9.4f} | '.format(self.fn(loss, i))
+        metric_str = ' | '.join('{}: {:9.4f}'.format(k, self.fn(v, i)) for k, v in metrics.items())
         print(track_str + loss_str + metric_str + '   ', end='')
         if i + 1 == self.length:
             print('')
