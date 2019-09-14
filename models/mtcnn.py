@@ -211,12 +211,13 @@ class MTCNN(nn.Module):
         boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
-            img {PIL.Image} -- A PIL image.
+            img {PIL.Image or list} -- A PIL image or a list of PIL images.
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
                 self.prewhiten=True, although the returned tensor is prewhitened, the saved face
                 image is not, so it is a true representation of the face in the input image.
+                If `img` is a list of images, `save_path` should be a list of equal length.
                 (default: {None})
             return_prob {bool} -- Whether or not to return the detection probability.
                 (default: {False})
@@ -226,7 +227,8 @@ class MTCNN(nn.Module):
                 with dimensions 3 x image_size x image_size. Optionally, the probability that a
                 face was detected. If self.keep_all is True, n detected faces are returned in an
                 n x 3 x image_size x image_size tensor with an optional list of detection
-                probabilities.
+                probabilities. If `img` is a list of images, the item(s) returned have an extra 
+                dimension (batch) as the first dimension.
 
         Example:
         >>> from facenet_pytorch import MTCNN
@@ -278,13 +280,15 @@ class MTCNN(nn.Module):
         the extract_face() function.
         
         Arguments:
-            img {PIL.Image} -- A PIL image.
+            img {PIL.Image or list} -- A PIL image or a list of PIL images.
         
         Returns:
             tuple(numpy.ndarray, list) -- For N detected faces, a tuple containing an
                 Nx4 array of bounding boxes and a length N list of detection probabilities.
                 Returned boxes will be sorted in descending order by detection probability if
                 self.select_largest=False, otherwise the largest face will be returned first.
+                If `img` is a list of images, the items returned have an extra dimension
+                (batch) as the first dimension.
 
         Example:
         >>> from PIL import Image, ImageDraw
