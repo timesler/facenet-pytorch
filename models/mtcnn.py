@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import os
+from collections.abc import Iterable
 
 from .utils.detect_face import detect_face, extract_face
 
@@ -236,40 +237,56 @@ class MTCNN(nn.Module):
         >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
 
-        with torch.no_grad():
-            boxes, probs = self.detect(img)
+        batch_mode = True
+        if not isinstance(img, Iterable):
+            img = [img]
+            batch_mode = False
 
-            if boxes is None:
-                if return_prob:
-                    return None, [None] if self.keep_all else None
-                else:
-                    return None
+        with torch.no_grad():
+            batch_boxes, batch_probs = self.detect(img)
+
+        if not isinstance(save_path, Iterable):
+            save_path = [save_path]
+        
+        faces, probs = [], []
+        for im, box_im, prob_im, path_im in zip(img, batch_boxes, batch_probs, save_path):
+            if box_im is None:
+                faces.append(None)
+                probs.append([None] if self.keep_all else None)
+                continue
 
             if not self.keep_all:
-                boxes = boxes[[0]]
+                box_im = box_im[[0]]
 
-            faces = []
-            for i, box in enumerate(boxes):
-                face_path = save_path
-                if save_path is not None and i > 0:
-                    save_name, ext = os.path.splitext(save_path)
+            faces_im = []
+            for i, box in enumerate(box_im):
+                face_path = path_im
+                if path_im is not None and i > 0:
+                    save_name, ext = os.path.splitext(path_im)
                     face_path = save_name + '_' + str(i + 1) + ext
 
-                face = extract_face(img, box, self.image_size, self.margin, face_path)
+                face = extract_face(im, box, self.image_size, self.margin, face_path)
                 if self.prewhiten:
                     face = prewhiten(face)
-                faces.append(face)
+                faces_im.append(face)
 
             if self.keep_all:
-                faces = torch.stack(faces)
+                faces_im = torch.stack(faces_im)
             else:
-                faces = faces[0]
-                probs = probs[0]
+                faces_im = faces_im[0]
+                prob_im = prob_im[0]
+            
+            faces.append(faces_im)
+            probs.append(prob_im)
+    
+        if not batch_mode:
+            boxes = boxes[0]
+            probs = probs[0]
 
-            if return_prob:
-                return faces, probs
-            else:
-                return faces
+        if return_prob:
+            return faces, probs
+        else:
+            return faces
 
     def detect(self, img):
         """Detect all faces in PIL image and return bounding boxes.
@@ -305,24 +322,30 @@ class MTCNN(nn.Module):
         """
 
         with torch.no_grad():
-            boxes = detect_face(
+            batch_boxes = detect_face(
                 img, self.min_face_size,
                 self.pnet, self.rnet, self.onet,
                 self.thresholds, self.factor,
                 self.device
             )
 
-        if len(boxes) == 0:
-            return None, [None]
+        boxes, probs = [], []
+        for box in batch_boxes:
+            box = np.array(box)
+            if len(box) == 0:
+                boxes.append(None)
+                probs.append([None])
+            elif self.select_largest:
+                box = box[np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]]
+                boxes.append(box[:, :4])
+                probs.append(box[:, 4])
+            else:
+                boxes.append(box[:, :4])
+                probs.append(box[:, 4])
+        boxes = np.array(boxes)
+        probs = np.array(probs)
 
-        if self.select_largest:
-            boxes = boxes[
-                np.argsort(
-                    (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-                )[::-1]
-            ]
-        
-        return boxes[:, 0:4], boxes[:, 4].tolist()
+        return boxes, probs
 
 
 def prewhiten(x):
