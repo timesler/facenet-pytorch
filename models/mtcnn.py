@@ -159,20 +159,22 @@ class MTCNN(nn.Module):
     """MTCNN face detection module.
 
     This class loads pretrained P-, R-, and O-nets and, given raw input images as PIL images,
-    returns images cropped to include the face only. Cropped faces can optionally be saved also.
+    returns images cropped to include the face only. Cropped faces can optionally be saved to file
+    also.
     
     Keyword Arguments:
         image_size {int} -- Output image size in pixels. The image will be square. (default: {160})
         margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. 
             Note that the application of the margin differs slightly from the davidsandberg/facenet
             repo, which applies the margin to the original image before resizing, making the margin
-            dependent on the original image size. (default: {0})
+            dependent on the original image size (this is a bug in davidsandberg/facenet).
+            (default: {0})
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
         prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
-            If False, the face with the highest detect probability is returned. (default: {True})
+            If False, the face with the highest detection probability is returned. (default: {True})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
             select_largest parameter. If a save_path is specified, the first face is saved to that
             path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
@@ -237,20 +239,24 @@ class MTCNN(nn.Module):
         >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
 
+        # Determine if a batch or single image was passed
         batch_mode = True
         if not isinstance(img, Iterable):
             img = [img]
             batch_mode = False
 
-        with torch.no_grad():
-            batch_boxes, batch_probs = self.detect(img)
-
+        # Parse save path(s)
         if save_path is not None:
             if isinstance(save_path, str):
                 save_path = [save_path]
         else:
             save_path = [None for _ in range(len(img))]
+
+        # Detect faces
+        with torch.no_grad():
+            batch_boxes, batch_probs = self.detect(img)
         
+        # Process all bounding boxes and probabilities
         faces, probs = [], []
         for im, box_im, prob_im, path_im in zip(img, batch_boxes, batch_probs, save_path):
             if box_im is None:
