@@ -134,3 +134,11 @@ def pass_epoch(
             writer.add_scalars(metric_name, {mode: metric})
 
     return loss, metrics
+
+
+def collate_pil(x): 
+    out_x, out_y = [], [] 
+    for xx, yy in x: 
+        out_x.append(xx) 
+        out_y.append(yy) 
+    return out_x, out_y 

@@ -245,8 +245,11 @@ class MTCNN(nn.Module):
         with torch.no_grad():
             batch_boxes, batch_probs = self.detect(img)
 
-        if not isinstance(save_path, Iterable):
-            save_path = [save_path]
+        if save_path is not None:
+            if isinstance(save_path, str):
+                save_path = [save_path]
+        else:
+            save_path = [None for _ in range(len(img))]
         
         faces, probs = [], []
         for im, box_im, prob_im, path_im in zip(img, batch_boxes, batch_probs, save_path):
@@ -280,7 +283,7 @@ class MTCNN(nn.Module):
             probs.append(prob_im)
     
         if not batch_mode:
-            boxes = boxes[0]
+            faces = faces[0]
             probs = probs[0]
 
         if return_prob:
