@@ -15,7 +15,9 @@ import glob
 
 from models.mtcnn import MTCNN, prewhiten
 from models.inception_resnet_v1 import InceptionResnetV1, get_torch_home
-from models.utils.detect_face import extract_face
+
+
+#### CLEAR ALL OUTPUT FILES ####
 
 checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
 for c in checkpoints:
@@ -28,11 +30,20 @@ for c in crop_files:
     os.remove(c)
 
 
+#### TEST EXAMPLE IPYNB'S ####
+
+os.system('jupyter nbconvert --to script --stdout examples/infer.ipynb examples/finetune.ipynb > examples/tmptest.py')
+os.chdir('examples')
+import examples.tmptest
+os.chdir('..')
+
+
+#### TEST MTCNN ####
+
 def get_image(path, trans):
     img = Image.open(path)
     img = trans(img)
     return img
-
 
 trans = transforms.Compose([
     transforms.Resize(512)
@@ -67,22 +78,23 @@ for img, idx in loader:
 aligned = torch.stack(aligned)
 aligned_fromfile = torch.stack(aligned_fromfile)
 
-# EMBEDDING TESTS
+
+#### TEST EMBEDDINGS ####
 
 expected = [
     [
-        [0.000000, 1.392167, 0.777482, 1.422187, 1.448250],
-        [1.392167, 0.000000, 1.288665, 0.868175, 0.907774],
-        [0.777482, 1.288665, 0.000000, 1.354270, 1.408071],
-        [1.422187, 0.868175, 1.354270, 0.000000, 1.071160],
-        [1.448250, 0.907774, 1.408071, 1.071160, 0.000000]
+        [0.000000, 1.395957, 0.785551, 1.456866, 1.466266],
+        [1.395957, 0.000000, 1.264742, 0.902874, 0.911210],
+        [0.785551, 1.264742, 0.000000, 1.360339, 1.405513],
+        [1.456866, 0.902874, 1.360339, 0.000000, 1.066445],
+        [1.466266, 0.911210, 1.405513, 1.066445, 0.000000]
     ],
     [
-        [0.000000, 1.320149, 0.846368, 1.361708, 1.213877],
-        [1.320149, 0.000000, 1.165031, 1.020736, 1.009726],
-        [0.846368, 1.165031, 0.000000, 1.318732, 1.246484],
-        [1.361708, 1.020736, 1.318732, 0.000000, 1.075795],
-        [1.213877, 1.009726, 1.246484, 1.075795, 0.000000]
+        [0.000000, 1.330782, 0.846278, 1.359174, 1.222049],
+        [1.330782, 0.000000, 1.157455, 0.989477, 0.974240],
+        [0.846278, 1.157455, 0.000000, 1.309103, 1.234498],
+        [1.359174, 0.989477, 1.309103, 0.000000, 1.066433],
+        [1.222049, 0.974240, 1.234498, 1.066433, 0.000000]
     ]
 ]
 
@@ -114,28 +126,42 @@ for i, ds in enumerate(['vggface2', 'casia-webface']):
         assert total_error < 1e-4
         assert total_error_fromfile < 1e-4
 
-# CLASSIFICATION TEST
+
+#### TEST CLASSIFICATION ####
 
 resnet_pt = InceptionResnetV1(pretrained=ds, classify=True).eval()
 prob = resnet_pt(aligned)
 
-# MULTI-FACE TEST
+
+#### MULTI-FACE TEST ####
 
 mtcnn = MTCNN(keep_all=True)
 img = Image.open('data/multiface.jpg')
-img_detected = Image.open('data/multiface_detected.png')
 boxes, probs = mtcnn.detect(img)
 
 draw = ImageDraw.Draw(img)
-for i, box in enumerate(boxes):
+for i, box in enumerate(boxes[0]):
     draw.rectangle(box.tolist())
 
 mtcnn(img, save_path='data/tmp.png')
+
+
+#### MULTI-IMAGE TEST ####
+
+mtcnn = MTCNN(keep_all=True)
+img = [
+    Image.open('data/multiface.jpg'),
+    Image.open('data/multiface.jpg')
+]
+batch_boxes, batch_probs = mtcnn.detect(img)
+
+mtcnn(img, save_path=['data/tmp1.png', 'data/tmp1.png'])
 tmp_files = glob.glob('data/tmp*')
 for f in tmp_files:
     os.remove(f)
 
-# NO-FACE TEST
+
+#### NO-FACE TEST ####
 
 img = Image.new('RGB', (512, 512))
 mtcnn(img)

@@ -5,3 +5,6 @@ runs
 build
 dist
 *.egg-info
+*tmp*
+.coverage
+htmlcov

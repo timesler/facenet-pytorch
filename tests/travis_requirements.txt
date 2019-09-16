@@ -11,3 +11,4 @@ scikit-image==0.15.0; sys_platform == 'win32'
 pandas==0.24.2
 coverage==4.5.3
 codecov==2.0.15
+jupyter==1.0.0
