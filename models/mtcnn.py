@@ -324,7 +324,7 @@ class MTCNN(nn.Module):
         >>> # Draw boxes and save faces
         >>> img_draw = img.copy()
         >>> draw = ImageDraw.Draw(img_draw)
-        >>> for i, box in enumerate(boxes):
+        >>> for i, box in enumerate(boxes[0]):
         ...     draw.rectangle(box.tolist())
         ...     extract_face(img, box, save_path='detected_face_{}.png'.format(i))
         >>> img_draw.save('annotated_faces.png')
