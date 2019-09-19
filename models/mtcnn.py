@@ -239,10 +239,16 @@ class MTCNN(nn.Module):
         >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
 
+        # Detect faces
+        with torch.no_grad():
+            batch_boxes, batch_probs = self.detect(img)
+
         # Determine if a batch or single image was passed
         batch_mode = True
         if not isinstance(img, Iterable):
             img = [img]
+            batch_boxes = [batch_boxes]
+            batch_probs = [batch_probs]
             batch_mode = False
 
         # Parse save path(s)
@@ -251,10 +257,6 @@ class MTCNN(nn.Module):
                 save_path = [save_path]
         else:
             save_path = [None for _ in range(len(img))]
-
-        # Detect faces
-        with torch.no_grad():
-            batch_boxes, batch_probs = self.detect(img)
         
         # Process all bounding boxes and probabilities
         faces, probs = [], []
@@ -324,7 +326,7 @@ class MTCNN(nn.Module):
         >>> # Draw boxes and save faces
         >>> img_draw = img.copy()
         >>> draw = ImageDraw.Draw(img_draw)
-        >>> for i, box in enumerate(boxes[0]):
+        >>> for i, box in enumerate(boxes):
         ...     draw.rectangle(box.tolist())
         ...     extract_face(img, box, save_path='detected_face_{}.png'.format(i))
         >>> img_draw.save('annotated_faces.png')
@@ -353,6 +355,10 @@ class MTCNN(nn.Module):
                 probs.append(box[:, 4])
         boxes = np.array(boxes)
         probs = np.array(probs)
+
+        if not isinstance(img, Iterable):
+            boxes = boxes[0]
+            probs = probs[0]
 
         return boxes, probs
 

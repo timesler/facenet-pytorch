@@ -140,7 +140,7 @@ img = Image.open('data/multiface.jpg')
 boxes, probs = mtcnn.detect(img)
 
 draw = ImageDraw.Draw(img)
-for i, box in enumerate(boxes[0]):
+for i, box in enumerate(boxes):
     draw.rectangle(box.tolist())
 
 mtcnn(img, save_path='data/tmp.png')
