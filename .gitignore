@@ -8,3 +8,4 @@ dist
 *tmp*
 .coverage
 htmlcov
+test.py
