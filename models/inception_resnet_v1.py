@@ -193,10 +193,10 @@ class InceptionResnetV1(nn.Module):
             embeddings. (default: {False})
         num_classes {int} -- Number of output classes. If 'pretrained' is set and num_classes not
             equal to that used for the pretrained model, the final linear layer will be randomly
-            initialized. (default: {1001})
+            initialized. (default: {None})
         dropout_prob {float} -- Dropout probability. (default: {0.6})
     """
-    def __init__(self, pretrained=None, classify=False, num_classes=1001, dropout_prob=0.6):
+    def __init__(self, pretrained=None, classify=False, num_classes=None, dropout_prob=0.6):
         super().__init__()
 
         # Set simple attributes
@@ -204,12 +204,15 @@ class InceptionResnetV1(nn.Module):
         self.classify = classify
         self.num_classes = num_classes
 
-        tmp_classes = self.num_classes
         if pretrained == 'vggface2':
             tmp_classes = 8631
         elif pretrained == 'casia-webface':
             tmp_classes = 10575
-        
+        elif pretrained is None and self.num_classes is None:
+            raise Exception('At least one of "pretrained" or "num_classes" must be specified')
+        else:
+            tmp_classes = self.num_classes
+
         # Define layers
         self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
         self.conv2d_2a = BasicConv2d(32, 32, kernel_size=3, stride=1)
@@ -256,7 +259,7 @@ class InceptionResnetV1(nn.Module):
         if pretrained is not None:
             load_weights(self, pretrained)
         
-        if self.num_classes != tmp_classes:
+        if self.num_classes is not None:
             self.logits = nn.Linear(512, self.num_classes)
 
     def forward(self, x):
