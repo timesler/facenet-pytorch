@@ -2,3 +2,10 @@ __pycache__
 .vscode
 .ipynb_checkpoints
 runs
+build
+dist
+*.egg-info
+*tmp*
+.coverage
+htmlcov
+test.py

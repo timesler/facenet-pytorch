@@ -1,21 +1,26 @@
 import torch
 import torchvision.transforms.functional as F
+from torchvision.utils import make_grid
 import numpy as np
 import os
-resize_mod = 'cv2'
-try:
-    from cv2 import resize, INTER_AREA
-except ImportError:
-    from skimage.transform import resize
-    resize_mod = 'skimage'
+from collections.abc import Iterable
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
-    w, h = img.size
+    if not isinstance(img, Iterable):
+        img = [img]
+    if any(im.size != img[0].size for im in img):
+        raise Exception('MTCNN batch processing only compatible with equal-dimension images.')
+
+    batch_size = len(img)
+    img = [torch.tensor(np.uint8(im)).float().to(device) for im in img]
+    wo, ho = img[0].shape[:2]
+    axis = 1 if ho < wo else 0
+    img = torch.cat(img, axis).unsqueeze(0).permute(0, 3, 1, 2)
+    h, w = img.shape[2:4]
     m = 12.0 / minsize
     minl = min(h, w)
     minl = minl * m
-    img = np.uint8(img)
 
     # First stage
     # Create scale pyramid
@@ -26,9 +31,7 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
         ws = int(w * scale + 1)
         im_data = imresample(img, (hs, ws))
         im_data = (im_data - 127.5) * 0.0078125
-        img_x = np.expand_dims(im_data, 0)
-        img_y = np.transpose(img_x, (0, 3, 1, 2))
-        reg, probs = pnet(torch.tensor(img_y).float().to(device))
+        reg, probs = pnet(im_data)
         
         boxes = generateBoundingBox(reg[0], probs[0, 1], scale, threshold[0]).numpy()
 
@@ -59,21 +62,18 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
     numbox = total_boxes.shape[0]
     if numbox>0:
         # second stage
-        tempimg = np.zeros((24, 24, 3, numbox))
+        im_data = []
         for k in range(0, numbox):
-            tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
-            tmp[(dy[k] - 1):edy[k], (dx[k] - 1):edx[k], :] = img[(y[k] - 1):ey[k], (x[k] - 1):ex[k], :]
-            if tmp.shape[0] > 0 and tmp.shape[1] > 0 or tmp.shape[0] == 0 and tmp.shape[1] == 0:
-                tempimg[:, :, :, k] = imresample(tmp, (24, 24))
-            else:
-                return np.empty()
-        tempimg = (tempimg - 127.5) * 0.0078125
-        tempimg1 = np.transpose(tempimg, (3, 2, 0, 1))
-        out = rnet(torch.tensor(tempimg1).float().to(device))
+            img_k = img[[0], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
+            im_data.append(imresample(img_k, (24, 24)))
+        im_data = torch.cat(im_data, 0)
+        im_data = (im_data - 127.5) * 0.0078125
+        out = rnet(im_data)
+
         out0 = np.transpose(out[0].numpy())
         out1 = np.transpose(out[1].numpy())
         score = out1[1, :]
-        ipass = np.where(score>threshold[1])
+        ipass = np.where(score > threshold[1])
         total_boxes = np.hstack([total_boxes[ipass[0], 0:4].copy(), np.expand_dims(score[ipass].copy(), 1)])
         mv = out0[:, ipass[0]]
         if total_boxes.shape[0] > 0:
@@ -87,17 +87,14 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
         # third stage
         total_boxes = np.fix(total_boxes).astype(np.int32)
         dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
-        tempimg = np.zeros((48, 48, 3, numbox))
+        im_data = []
         for k in range(0, numbox):
-            tmp = np.zeros((int(tmph[k]), int(tmpw[k]), 3))
-            tmp[(dy[k] - 1):edy[k], (dx[k] - 1):edx[k], :] = img[(y[k] - 1):ey[k], (x[k] - 1):ex[k], :]
-            if tmp.shape[0] > 0 and tmp.shape[1] > 0 or tmp.shape[0] == 0 and tmp.shape[1] == 0:
-                tempimg[:, :, :, k] = imresample(tmp, (48, 48))
-            else:
-                return np.empty()
-        tempimg = (tempimg - 127.5) * 0.0078125
-        tempimg1 = np.transpose(tempimg, (3, 2, 0, 1))
-        out = onet(torch.tensor(tempimg1).float().to(device))
+            img_k = img[[0], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
+            im_data.append(imresample(img_k, (48, 48)))
+        im_data = torch.cat(im_data, 0)
+        im_data = (im_data - 127.5) * 0.0078125
+        out = onet(im_data)
+        
         out0 = np.transpose(out[0].numpy())
         out1 = np.transpose(out[1].numpy())
         out2 = np.transpose(out[2].numpy())
@@ -117,8 +114,16 @@ def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
             pick = nms(total_boxes.copy(), 0.7, 'Min')
             total_boxes = total_boxes[pick, :]
             points = points[:, pick]
-                    
-    return total_boxes
+    
+    dim = 1 - axis
+    batch_dim = max(wo, ho)
+    batch_boxes = [[] for _ in range(batch_size)]
+    for box in total_boxes:
+        batch_ind = int(box[1 - axis] / batch_dim)
+        box[[1 - axis, 1 - axis + 2]] = [b % batch_dim for b in box[[1 - axis, 1 - axis + 2]]]
+        batch_boxes[batch_ind].append(box)
+
+    return np.array(batch_boxes)
 
 
 def bbreg(boundingbox,reg):
@@ -227,9 +232,8 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    out_shape = (sz[1], sz[0]) if resize_mod == 'cv2' else (sz[0], sz[1])
-    resize_args = {'interpolation': INTER_AREA} if resize_mod == 'cv2' else {'preserve_range': True}
-    im_data = resize(img, out_shape, **resize_args)
+    out_shape = (sz[0], sz[1])
+    im_data = torch.nn.functional.interpolate(img, size=out_shape, mode='area')
     return im_data
 
 

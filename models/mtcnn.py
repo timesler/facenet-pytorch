@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import os
+from collections.abc import Iterable
 
 from .utils.detect_face import detect_face, extract_face
 
@@ -158,20 +159,22 @@ class MTCNN(nn.Module):
     """MTCNN face detection module.
 
     This class loads pretrained P-, R-, and O-nets and, given raw input images as PIL images,
-    returns images cropped to include the face only. Cropped faces can optionally be saved also.
+    returns images cropped to include the face only. Cropped faces can optionally be saved to file
+    also.
     
     Keyword Arguments:
         image_size {int} -- Output image size in pixels. The image will be square. (default: {160})
         margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. 
             Note that the application of the margin differs slightly from the davidsandberg/facenet
             repo, which applies the margin to the original image before resizing, making the margin
-            dependent on the original image size. (default: {0})
+            dependent on the original image size (this is a bug in davidsandberg/facenet).
+            (default: {0})
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
         prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
-            If False, the face with the highest detect probability is returned. (default: {True})
+            If False, the face with the highest detection probability is returned. (default: {True})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
             select_largest parameter. If a save_path is specified, the first face is saved to that
             path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
@@ -211,12 +214,13 @@ class MTCNN(nn.Module):
         boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
-            img {PIL.Image} -- A PIL image.
+            img {PIL.Image or list} -- A PIL image or a list of PIL images.
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
                 self.prewhiten=True, although the returned tensor is prewhitened, the saved face
                 image is not, so it is a true representation of the face in the input image.
+                If `img` is a list of images, `save_path` should be a list of equal length.
                 (default: {None})
             return_prob {bool} -- Whether or not to return the detection probability.
                 (default: {False})
@@ -226,7 +230,8 @@ class MTCNN(nn.Module):
                 with dimensions 3 x image_size x image_size. Optionally, the probability that a
                 face was detected. If self.keep_all is True, n detected faces are returned in an
                 n x 3 x image_size x image_size tensor with an optional list of detection
-                probabilities.
+                probabilities. If `img` is a list of images, the item(s) returned have an extra 
+                dimension (batch) as the first dimension.
 
         Example:
         >>> from facenet_pytorch import MTCNN
@@ -234,40 +239,65 @@ class MTCNN(nn.Module):
         >>> face_tensor, prob = mtcnn(img, save_path='face.png', return_prob=True)
         """
 
+        # Detect faces
         with torch.no_grad():
-            boxes, probs = self.detect(img)
+            batch_boxes, batch_probs = self.detect(img)
 
-            if boxes is None:
-                if return_prob:
-                    return None, [None] if self.keep_all else None
-                else:
-                    return None
+        # Determine if a batch or single image was passed
+        batch_mode = True
+        if not isinstance(img, Iterable):
+            img = [img]
+            batch_boxes = [batch_boxes]
+            batch_probs = [batch_probs]
+            batch_mode = False
+
+        # Parse save path(s)
+        if save_path is not None:
+            if isinstance(save_path, str):
+                save_path = [save_path]
+        else:
+            save_path = [None for _ in range(len(img))]
+        
+        # Process all bounding boxes and probabilities
+        faces, probs = [], []
+        for im, box_im, prob_im, path_im in zip(img, batch_boxes, batch_probs, save_path):
+            if box_im is None:
+                faces.append(None)
+                probs.append([None] if self.keep_all else None)
+                continue
 
             if not self.keep_all:
-                boxes = boxes[[0]]
+                box_im = box_im[[0]]
 
-            faces = []
-            for i, box in enumerate(boxes):
-                face_path = save_path
-                if save_path is not None and i > 0:
-                    save_name, ext = os.path.splitext(save_path)
+            faces_im = []
+            for i, box in enumerate(box_im):
+                face_path = path_im
+                if path_im is not None and i > 0:
+                    save_name, ext = os.path.splitext(path_im)
                     face_path = save_name + '_' + str(i + 1) + ext
 
-                face = extract_face(img, box, self.image_size, self.margin, face_path)
+                face = extract_face(im, box, self.image_size, self.margin, face_path)
                 if self.prewhiten:
                     face = prewhiten(face)
-                faces.append(face)
+                faces_im.append(face)
 
             if self.keep_all:
-                faces = torch.stack(faces)
+                faces_im = torch.stack(faces_im)
             else:
-                faces = faces[0]
-                probs = probs[0]
+                faces_im = faces_im[0]
+                prob_im = prob_im[0]
+            
+            faces.append(faces_im)
+            probs.append(prob_im)
+    
+        if not batch_mode:
+            faces = faces[0]
+            probs = probs[0]
 
-            if return_prob:
-                return faces, probs
-            else:
-                return faces
+        if return_prob:
+            return faces, probs
+        else:
+            return faces
 
     def detect(self, img):
         """Detect all faces in PIL image and return bounding boxes.
@@ -278,13 +308,15 @@ class MTCNN(nn.Module):
         the extract_face() function.
         
         Arguments:
-            img {PIL.Image} -- A PIL image.
+            img {PIL.Image or list} -- A PIL image or a list of PIL images.
         
         Returns:
             tuple(numpy.ndarray, list) -- For N detected faces, a tuple containing an
                 Nx4 array of bounding boxes and a length N list of detection probabilities.
                 Returned boxes will be sorted in descending order by detection probability if
                 self.select_largest=False, otherwise the largest face will be returned first.
+                If `img` is a list of images, the items returned have an extra dimension
+                (batch) as the first dimension.
 
         Example:
         >>> from PIL import Image, ImageDraw
@@ -301,24 +333,34 @@ class MTCNN(nn.Module):
         """
 
         with torch.no_grad():
-            boxes = detect_face(
+            batch_boxes = detect_face(
                 img, self.min_face_size,
                 self.pnet, self.rnet, self.onet,
                 self.thresholds, self.factor,
                 self.device
             )
 
-        if len(boxes) == 0:
-            return None, [None]
+        boxes, probs = [], []
+        for box in batch_boxes:
+            box = np.array(box)
+            if len(box) == 0:
+                boxes.append(None)
+                probs.append([None])
+            elif self.select_largest:
+                box = box[np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]]
+                boxes.append(box[:, :4])
+                probs.append(box[:, 4])
+            else:
+                boxes.append(box[:, :4])
+                probs.append(box[:, 4])
+        boxes = np.array(boxes)
+        probs = np.array(probs)
 
-        if self.select_largest:
-            boxes = boxes[
-                np.argsort(
-                    (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-                )[::-1]
-            ]
-        
-        return boxes[:, 0:4], boxes[:, 4].tolist()
+        if not isinstance(img, Iterable):
+            boxes = boxes[0]
+            probs = probs[0]
+
+        return boxes, probs
 
 
 def prewhiten(x):
