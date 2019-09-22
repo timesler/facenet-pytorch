@@ -87,36 +87,44 @@ Both pretrained models were trained on 160x160 px images, so will perform best i
 
 By default, the above models will return 512-dimensional embeddings of images. To enable classification instead, either pass `classify=True` to the model constructor, or you can set the object attribute afterwards with `model.classify = True`. For VGGFace2, the pretrained model will output logit vectors of length 8631, and for CASIA-Webface logit vectors of length 10575.
 
-## Complete detection and recognition pipeline
+## Example notebooks
 
-Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model.
+### *Complete detection and recognition pipeline*
 
-The example code at [examples/infer.ipynb](examples/infer.ipynb) provides a complete example pipeline utilizing datasets, dataloaders, and optional GPU processing.
+Face recognition can be easily applied to raw images by first detecting faces using MTCNN before calculating embedding or probabilities using an Inception Resnet model. The example code at [examples/infer.ipynb](examples/infer.ipynb) provides a complete example pipeline utilizing datasets, dataloaders, and optional GPU processing.
 
-## Face tracking in video streams
+### *Face tracking in video streams*
 
 MTCNN can be used to build a face tracking system (using the `MTCNN.detect()` method). A full face tracking example can be found at [examples/face_tracking.ipynb](examples/face_tracking.ipynb).
 
 ![](examples/tracked.gif)
 
+### *Finetuning pretrained models with new data*
+
+In most situations, the best way to implement face recognition is to use the pretrained models directly, with either a clustering algorithm or a simple distance metrics to determine the identity of a face. However, if finetuning is required (i.e., if you want to select identity based on the model's output logits), an example can be found at [examples/finetune.ipynb](examples/finetune.ipynb).
+
+## Running with docker
+
+The package and any of the example notebooks can be run with docker (or nvidia-docker) using:
+
+```bash
+docker run --rm -p 8888:8888
+    -v ./facenet-pytorch:/home/jovyan timesler/jupyter-dl-gpu \
+    -v <path to data>:/home/jovyan/data
+    pip install facenet-pytorch && jupyter lab 
+```
+
+Navigate to the examples/ directory and run any of the ipython notebooks.
+
 ## Use this repo in your own git project
 
-To use pretrained MTCNN and Inception Resnet V1 models in your own git repo, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
+To use this code in your own git repo, I recommend first adding this repo as a submodule. Note that the dash ('-') in the repo name should be removed when cloning as a submodule as it will break python when importing:
 
 `git submodule add https://github.com/timesler/facenet-pytorch.git facenet_pytorch`
 
 Alternatively, the code can be installed as a package using pip:
 
 `pip install facenet-pytorch`
-
-Models can then be instantiated simply with the following:
-
-```python
-from facenet_pytorch import MTCNN, InceptionResnetV1
-
-mtcnn = MTCNN()
-resnet = InceptionResnetV1(pretrained='vggface2').eval()
-```
 
 ## Conversion of parameters from Tensorflow to Pytorch
 

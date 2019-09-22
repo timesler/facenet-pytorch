@@ -9,3 +9,6 @@ dist
 .coverage
 htmlcov
 test.py
+.cache
+.ipython
+.local
