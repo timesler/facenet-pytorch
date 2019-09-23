@@ -20,8 +20,12 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     pip install facenet-pytorch
     ```
     or clone this repo, removing the '-' to allow python imports:
-    ```git
+    ```bash
     git clone https://github.com/timesler/facenet-pytorch.git facenet_pytorch
+    ```
+    or use a docker container (see [timesler/jupyter-dl-gpu](https://github.com/timesler/docker-jupyter-dl-gpu)):
+    ```bash
+    docker run -it --rm timesler/jupyter-dl-gpu pip install facenet-pytorch && ipython
     ```
 1. In python, import the module:
     ```python
@@ -115,6 +119,8 @@ docker run --rm -p 8888:8888
 ```
 
 Navigate to the examples/ directory and run any of the ipython notebooks.
+
+See [timesler/jupyter-dl-gpu](https://github.com/timesler/docker-jupyter-dl-gpu) for docker container details.
 
 ## Use this repo in your own git project
 
