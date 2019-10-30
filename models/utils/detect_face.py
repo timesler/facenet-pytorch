@@ -121,7 +121,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         
         batch_boxes.append(total_boxes)
 
-    return np.stack(batch_boxes)
+    return np.array(batch_boxes)
 
 
 def bbreg(boundingbox,reg):
