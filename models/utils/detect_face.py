@@ -6,124 +6,122 @@ import os
 from collections.abc import Iterable
 
 
-def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):
-    if not isinstance(img, Iterable):
-        img = [img]
-    if any(im.size != img[0].size for im in img):
+def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
+    if not isinstance(imgs, Iterable):
+        imgs = [imgs]
+    if any(img.size != imgs[0].size for img in imgs):
         raise Exception('MTCNN batch processing only compatible with equal-dimension images.')
 
-    batch_size = len(img)
-    img = [torch.tensor(np.uint8(im)).float().to(device) for im in img]
-    wo, ho = img[0].shape[:2]
-    axis = 1 if ho < wo else 0
-    img = torch.cat(img, axis).unsqueeze(0).permute(0, 3, 1, 2)
-    h, w = img.shape[2:4]
+    imgs = [torch.as_tensor(np.uint8(img)).float().to(device) for img in imgs]
+    imgs = torch.stack(imgs).permute(0, 3, 1, 2)
+
+    batch_size = len(imgs)
+    h, w = imgs.shape[2:4]
     m = 12.0 / minsize
     minl = min(h, w)
     minl = minl * m
 
     # First stage
     # Create scale pyramid
-    total_boxes = np.empty((0, 9))
+    total_boxes_all = [np.empty((0, 9)) for i in range(batch_size)]
     scale = m
     while minl >= 12:
         hs = int(h * scale + 1)
         ws = int(w * scale + 1)
-        im_data = imresample(img, (hs, ws))
+        im_data = imresample(imgs, (hs, ws))
         im_data = (im_data - 127.5) * 0.0078125
         reg, probs = pnet(im_data)
         
-        boxes = generateBoundingBox(reg[0], probs[0, 1], scale, threshold[0]).numpy()
+        for b_i in range(batch_size):
+            boxes = generateBoundingBox(reg[b_i], probs[b_i, 1], scale, threshold[0]).numpy()
+
+            # inter-scale nms
+            pick = nms(boxes, 0.5, 'Union')
+            if boxes.size > 0 and pick.size > 0:
+                boxes = boxes[pick, :]
+                total_boxes_all[b_i] = np.append(total_boxes_all[b_i], boxes, axis=0)
 
         scale = scale * factor
         minl = minl * factor
-        
-        # inter-scale nms
-        pick = nms(boxes, 0.5, 'Union')
-        if boxes.size > 0 and pick.size > 0:
-            boxes = boxes[pick, :]
-            total_boxes = np.append(total_boxes, boxes, axis=0)
 
-    numbox = total_boxes.shape[0]
-    if numbox>0:
-        pick = nms(total_boxes, 0.7, 'Union')
-        total_boxes = total_boxes[pick,:]
-        regw = total_boxes[:, 2] - total_boxes[:, 0]
-        regh = total_boxes[:, 3] - total_boxes[:, 1]
-        qq1 = total_boxes[:, 0] + total_boxes[:, 5] * regw
-        qq2 = total_boxes[:, 1] + total_boxes[:, 6] * regh
-        qq3 = total_boxes[:, 2] + total_boxes[:, 7] * regw
-        qq4 = total_boxes[:, 3] + total_boxes[:, 8] * regh
-        total_boxes = np.transpose(np.vstack([qq1, qq2, qq3, qq4, total_boxes[:, 4]]))
-        total_boxes = rerec(total_boxes.copy())
-        total_boxes[:, 0:4] = np.fix(total_boxes[:, 0:4]).astype(np.int32)
-        dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
-
-    numbox = total_boxes.shape[0]
-    if numbox>0:
-        # second stage
-        im_data = []
-        for k in range(0, numbox):
-            img_k = img[[0], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
-            im_data.append(imresample(img_k, (24, 24)))
-        im_data = torch.cat(im_data, 0)
-        im_data = (im_data - 127.5) * 0.0078125
-        out = rnet(im_data)
-
-        out0 = np.transpose(out[0].numpy())
-        out1 = np.transpose(out[1].numpy())
-        score = out1[1, :]
-        ipass = np.where(score > threshold[1])
-        total_boxes = np.hstack([total_boxes[ipass[0], 0:4].copy(), np.expand_dims(score[ipass].copy(), 1)])
-        mv = out0[:, ipass[0]]
-        if total_boxes.shape[0] > 0:
+    batch_boxes = []
+    for img, total_boxes in zip(imgs, total_boxes_all):
+        numbox = total_boxes.shape[0]
+        if numbox>0:
             pick = nms(total_boxes, 0.7, 'Union')
             total_boxes = total_boxes[pick, :]
-            total_boxes = bbreg(total_boxes.copy(), np.transpose(mv[:, pick]))
-            total_boxes = rerec(total_boxes.copy())
+            regw = total_boxes[:, 2] - total_boxes[:, 0]
+            regh = total_boxes[:, 3] - total_boxes[:, 1]
+            qq1 = total_boxes[:, 0] + total_boxes[:, 5] * regw
+            qq2 = total_boxes[:, 1] + total_boxes[:, 6] * regh
+            qq3 = total_boxes[:, 2] + total_boxes[:, 7] * regw
+            qq4 = total_boxes[:, 3] + total_boxes[:, 8] * regh
+            total_boxes = np.transpose(np.vstack([qq1, qq2, qq3, qq4, total_boxes[:, 4]]))
+            total_boxes = rerec(total_boxes)
+            total_boxes[:, 0:4] = np.fix(total_boxes[:, 0:4]).astype(np.int32)
+            dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes, w, h)
 
-    numbox = total_boxes.shape[0]
-    if numbox>0:
-        # third stage
-        total_boxes = np.fix(total_boxes).astype(np.int32)
-        dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
-        im_data = []
-        for k in range(0, numbox):
-            img_k = img[[0], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
-            im_data.append(imresample(img_k, (48, 48)))
-        im_data = torch.cat(im_data, 0)
-        im_data = (im_data - 127.5) * 0.0078125
-        out = onet(im_data)
+        numbox = total_boxes.shape[0]
+        if numbox>0:
+            # second stage
+            im_data = []
+            for k in range(0, numbox):
+                if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
+                    img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                    im_data.append(imresample(img_k, (24, 24)))
+            im_data = torch.cat(im_data, 0)
+            im_data = (im_data - 127.5) * 0.0078125
+            out = rnet(im_data)
+
+            out0 = np.transpose(out[0].numpy())
+            out1 = np.transpose(out[1].numpy())
+            score = out1[1, :]
+            ipass = np.where(score > threshold[1])
+            total_boxes = np.hstack([total_boxes[ipass[0], 0:4].copy(), np.expand_dims(score[ipass].copy(), 1)])
+            mv = out0[:, ipass[0]]
+            if total_boxes.shape[0] > 0:
+                pick = nms(total_boxes, 0.7, 'Union')
+                total_boxes = total_boxes[pick, :]
+                total_boxes = bbreg(total_boxes.copy(), np.transpose(mv[:, pick]))
+                total_boxes = rerec(total_boxes.copy())
+
+        numbox = total_boxes.shape[0]
+        if numbox>0:
+            # third stage
+            total_boxes = np.fix(total_boxes).astype(np.int32)
+            dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
+            im_data = []
+            for k in range(0, numbox):
+                if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
+                    img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                    im_data.append(imresample(img_k, (48, 48)))
+            im_data = torch.cat(im_data, 0)
+            im_data = (im_data - 127.5) * 0.0078125
+            out = onet(im_data)
+
+            out0 = np.transpose(out[0].numpy())
+            out1 = np.transpose(out[1].numpy())
+            out2 = np.transpose(out[2].numpy())
+            score = out2[1, :]
+            points = out1
+            ipass = np.where(score>threshold[2])
+            points = points[:, ipass[0]]
+            total_boxes = np.hstack([total_boxes[ipass[0], 0:4].copy(), np.expand_dims(score[ipass].copy(), 1)])
+            mv = out0[:,ipass[0]]
+
+            w_i = total_boxes[:, 2] - total_boxes[:, 0] + 1
+            h_i = total_boxes[:, 3] - total_boxes[:, 1] + 1
+            points[0:5, :] = np.tile(w_i, (5, 1)) * points[0:5, :] + np.tile(total_boxes[:, 0], (5, 1)) - 1
+            points[5:10, :] = np.tile(h_i, (5, 1)) * points[5:10, :] + np.tile(total_boxes[:, 1], (5, 1)) - 1
+            if total_boxes.shape[0] > 0:
+                total_boxes = bbreg(total_boxes, np.transpose(mv))
+                pick = nms(total_boxes, 0.7, 'Min')
+                total_boxes = total_boxes[pick, :]
+                points = points[:, pick]
         
-        out0 = np.transpose(out[0].numpy())
-        out1 = np.transpose(out[1].numpy())
-        out2 = np.transpose(out[2].numpy())
-        score = out2[1, :]
-        points = out1
-        ipass = np.where(score>threshold[2])
-        points = points[:, ipass[0]]
-        total_boxes = np.hstack([total_boxes[ipass[0], 0:4].copy(), np.expand_dims(score[ipass].copy(), 1)])
-        mv = out0[:,ipass[0]]
+        batch_boxes.append(total_boxes)
 
-        w = total_boxes[:, 2] - total_boxes[:, 0] + 1
-        h = total_boxes[:, 3] - total_boxes[:, 1] + 1
-        points[0:5, :] = np.tile(w, (5, 1)) * points[0:5, :] + np.tile(total_boxes[:, 0], (5, 1)) - 1
-        points[5:10, :] = np.tile(h, (5, 1)) * points[5:10, :] + np.tile(total_boxes[:, 1], (5, 1)) - 1
-        if total_boxes.shape[0] > 0:
-            total_boxes = bbreg(total_boxes.copy(), np.transpose(mv))
-            pick = nms(total_boxes.copy(), 0.7, 'Min')
-            total_boxes = total_boxes[pick, :]
-            points = points[:, pick]
-    
-    dim = 1 - axis
-    batch_dim = max(wo, ho)
-    batch_boxes = [[] for _ in range(batch_size)]
-    for box in total_boxes:
-        batch_ind = int(box[1 - axis] / batch_dim)
-        box[[1 - axis, 1 - axis + 2]] = [b % batch_dim for b in box[[1 - axis, 1 - axis + 2]]]
-        batch_boxes[batch_ind].append(box)
-
-    return np.array(batch_boxes)
+    return np.stack(batch_boxes)
 
 
 def bbreg(boundingbox,reg):
@@ -146,7 +144,7 @@ def generateBoundingBox(reg, probs, scale, thresh):
     
     mask = probs >= thresh
     score = probs[mask]
-    reg = np.transpose(reg[0:4, mask])
+    reg = reg[:, mask].permute(1, 0)
     bb = mask.nonzero().float().flip(1)
     q1 = ((stride * bb + 1) / scale).floor()
     q2 = ((stride * bb + cellsize - 1 + 1) / scale).floor()
