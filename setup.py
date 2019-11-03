@@ -1,7 +1,7 @@
 import setuptools, os
 
 PACKAGE_NAME = 'facenet-pytorch'
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 AUTHOR = 'Tim Esler'
 EMAIL = 'tim.esler@gmail.com'
 DESCRIPTION = 'Pretrained Pytorch face detection and recognition models'
