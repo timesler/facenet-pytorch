@@ -46,7 +46,7 @@ class PNet(nn.Module):
         a = self.conv4_1(x)
         a = self.softmax4_1(a)
         b = self.conv4_2(x)
-        return b.cpu(), a.cpu()
+        return b, a
 
 
 class RNet(nn.Module):
@@ -95,7 +95,7 @@ class RNet(nn.Module):
         a = self.dense5_1(x)
         a = self.softmax5_1(a)
         b = self.dense5_2(x)
-        return b.cpu(), a.cpu()
+        return b, a
 
 
 class ONet(nn.Module):
@@ -152,7 +152,7 @@ class ONet(nn.Module):
         a = self.softmax6_1(a)
         b = self.dense6_2(x)
         c = self.dense6_3(x)
-        return b.cpu(), c.cpu(), a.cpu()
+        return b, c, a
 
 
 class MTCNN(nn.Module):
