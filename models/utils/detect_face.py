@@ -10,7 +10,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if not isinstance(imgs, Iterable):
         imgs = [imgs]
     if any(img.size != imgs[0].size for img in imgs):
-        raise Exception('MTCNN batch processing only compatible with equal-dimension images.')
+        raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
 
     imgs = [torch.as_tensor(np.uint8(img)).float().to(device) for img in imgs]
     imgs = torch.stack(imgs).permute(0, 3, 1, 2)
@@ -27,7 +27,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         img_x = imresample(imgs, (hs, ws))
         img_x = (img_x - 127.5) * 0.0078125
         reg, probs = pnet(img_x)
-        
+
         for i, (reg_i, probs_i) in enumerate(zip(reg, probs)):
             boxes = generateBoundingBox(reg_i, probs_i[1], scale, threshold[0])
             pick = nms(boxes[:, :4], boxes[:, 4], 0.5)
@@ -42,7 +42,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     batch_boxes = []
     for img, total_boxes in zip(imgs, proposal_boxes):
         numbox = total_boxes.shape[0]
-        if numbox>0:
+        if numbox > 0:
             pick = nms(total_boxes[:, :4], total_boxes[:, 4], 0.7)
             total_boxes = total_boxes[pick]
             regw = total_boxes[:, 2] - total_boxes[:, 0]
@@ -62,7 +62,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
             im_data = []
             for k in range(0, numbox):
                 if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                    img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                    img_k = img[:, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]].unsqueeze(0)
                     im_data.append(imresample(img_k, (24, 24)))
             im_data = torch.cat(im_data, 0)
             im_data = (im_data - 127.5) * 0.0078125
@@ -89,7 +89,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
             im_data = []
             for k in range(0, numbox):
                 if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                    img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                    img_k = img[:, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]].unsqueeze(0)
                     im_data.append(imresample(img_k, (48, 48)))
             im_data = torch.cat(im_data, 0)
             im_data = (im_data - 127.5) * 0.0078125
@@ -115,13 +115,13 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
                 pick = nms(total_boxes[:, :4], total_boxes[:, 4], 0.7)
                 total_boxes = total_boxes[pick, :]
                 # points = points[:, pick]
-        
+
         batch_boxes.append(total_boxes)
 
     return torch.stack(batch_boxes).cpu().numpy()
 
 
-def bbreg(boundingbox,reg):
+def bbreg(boundingbox, reg):
     w = boundingbox[:, 2] - boundingbox[:, 0] + 1
     h = boundingbox[:, 3] - boundingbox[:, 1] + 1
     b1 = boundingbox[:, 0] + reg[:, 0] * w
@@ -134,9 +134,9 @@ def bbreg(boundingbox,reg):
 
 
 def generateBoundingBox(reg, probs, scale, thresh):
-    stride=2
-    cellsize=12
-    
+    stride = 2
+    cellsize = 12
+
     mask = probs >= thresh
     score = probs[mask]
     reg = reg[:, mask].permute(1, 0)
@@ -144,12 +144,12 @@ def generateBoundingBox(reg, probs, scale, thresh):
     q1 = ((stride * bb + 1) / scale).floor()
     q2 = ((stride * bb + cellsize - 1 + 1) / scale).floor()
     boundingbox = torch.cat((q1, q2, score.unsqueeze(1), reg), dim=1)
-    
+
     return boundingbox
 
 
 def pad(boxes, w, h):
-    device = 'cpu' if boxes.get_device() == -1 else boxes.get_device()
+    device = "cpu" if boxes.get_device() == -1 else boxes.get_device()
 
     tmpw = (boxes[:, 2] - boxes[:, 0] + 1).int()
     tmph = (boxes[:, 3] - boxes[:, 1] + 1).int()
@@ -168,7 +168,7 @@ def pad(boxes, w, h):
     tmp = ex > w
     edx[tmp] = -ex[tmp] + w + tmpw[tmp]
     ex[tmp] = w
-    
+
     tmp = ey > h
     edy[tmp] = -ey[tmp] + h + tmph[tmp]
     ey[tmp] = h
@@ -180,7 +180,7 @@ def pad(boxes, w, h):
     tmp = y < 1
     dy[tmp] = 2 - y[tmp]
     y[tmp] = 1
-    
+
     return dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph
 
 
@@ -197,7 +197,7 @@ def rerec(boxes):
 
 def imresample(img, sz):
     out_shape = (sz[0], sz[1])
-    im_data = torch.nn.functional.interpolate(img, size=out_shape, mode='area')
+    im_data = torch.nn.functional.interpolate(img, size=out_shape, mode="area")
     return im_data
 
 
@@ -219,22 +219,22 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
     """
     margin = [
         margin * (box[2] - box[0]) / (image_size - margin),
-        margin * (box[3] - box[1]) / (image_size - margin)
+        margin * (box[3] - box[1]) / (image_size - margin),
     ]
     box = [
-        int(max(box[0] - margin[0]/2, 0)),
-        int(max(box[1] - margin[1]/2, 0)),
-        int(min(box[2] + margin[0]/2, img.size[0])),
-        int(min(box[3] + margin[1]/2, img.size[1]))
+        int(max(box[0] - margin[0] / 2, 0)),
+        int(max(box[1] - margin[1] / 2, 0)),
+        int(min(box[2] + margin[0] / 2, img.size[0])),
+        int(min(box[3] + margin[1] / 2, img.size[1])),
     ]
 
     face = img.crop(box).resize((image_size, image_size), 2)
 
     if save_path is not None:
-        os.makedirs(os.path.dirname(save_path)+'/', exist_ok=True)
-        save_args = {'compress_level': 0} if '.png' in save_path else {}
+        os.makedirs(os.path.dirname(save_path) + "/", exist_ok=True)
+        save_args = {"compress_level": 0} if ".png" in save_path else {}
         face.save(save_path, **save_args)
 
     face = F.to_tensor(np.float32(face))
-    
+
     return face
