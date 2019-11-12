@@ -1,5 +1,5 @@
 import torch
-import torchvision.transforms.functional as F
+from torchvision.transforms import functional as F
 import numpy as np
 import os
 from collections.abc import Iterable
@@ -46,6 +46,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     batch_boxes = []
     batch_points = []
     for img, total_boxes in zip(imgs, total_boxes_all):
+        points = []
         numbox = total_boxes.shape[0]
         if numbox > 0:
             pick = nms(total_boxes, 0.7, "Union")
