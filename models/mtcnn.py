@@ -299,16 +299,20 @@ class MTCNN(nn.Module):
         else:
             return faces
 
-    def detect(self, img):
-        """Detect all faces in PIL image and return bounding boxes.
+    def detect(self, img, landmarks=False):
+        """Detect all faces in PIL image and return bounding boxes and optional facial landmarks.
 
         This method is used by the forward method and is also useful for face detection tasks
-        that require lower-level handling of bounding boxes (e.g., face tracking). The
-        functionality of the forward function can be emulated by using this method followed by
-        the extract_face() function.
+        that require lower-level handling of bounding boxes and facial landmarks (e.g., face
+        tracking). The functionality of the forward function can be emulated by using this method
+        followed by the extract_face() function.
         
         Arguments:
             img {PIL.Image or list} -- A PIL image or a list of PIL images.
+
+        Keyword Arguments:
+            landmarks {bool} -- Whether to return facial landmarks in addition to bounding boxes.
+                (default: {False})
         
         Returns:
             tuple(numpy.ndarray, list) -- For N detected faces, a tuple containing an
@@ -316,49 +320,63 @@ class MTCNN(nn.Module):
                 Returned boxes will be sorted in descending order by detection probability if
                 self.select_largest=False, otherwise the largest face will be returned first.
                 If `img` is a list of images, the items returned have an extra dimension
-                (batch) as the first dimension.
+                (batch) as the first dimension. Optionally, a third item, the facial landmarks,
+                are returned if `landmarks=True`.
 
         Example:
         >>> from PIL import Image, ImageDraw
         >>> from facenet_pytorch import MTCNN, extract_face
         >>> mtcnn = MTCNN(keep_all=True)
-        >>> boxes, probs = mtcnn.detect(img)
+        >>> boxes, probs, points = mtcnn.detect(img, landmarks=True)
         >>> # Draw boxes and save faces
         >>> img_draw = img.copy()
         >>> draw = ImageDraw.Draw(img_draw)
-        >>> for i, box in enumerate(boxes):
-        ...     draw.rectangle(box.tolist())
+        >>> for i, (box, point) in enumerate(zip(boxes, points)):
+        ...     draw.rectangle(box.tolist(), width=5)
+        ...     for p in point:
+        ...         draw.rectangle((p - 10).tolist() + (p + 10).tolist(), width=10)
         ...     extract_face(img, box, save_path='detected_face_{}.png'.format(i))
         >>> img_draw.save('annotated_faces.png')
         """
 
         with torch.no_grad():
-            batch_boxes = detect_face(
+            batch_boxes, batch_points = detect_face(
                 img, self.min_face_size,
                 self.pnet, self.rnet, self.onet,
                 self.thresholds, self.factor,
                 self.device
             )
 
-        boxes, probs = [], []
-        for box in batch_boxes:
+        boxes, probs, points = [], [], []
+        for box, point in zip(batch_boxes, batch_points):
             box = np.array(box)
+            point = np.array(point)
             if len(box) == 0:
                 boxes.append(None)
                 probs.append([None])
+                points.append(None)
             elif self.select_largest:
-                box = box[np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]]
+                box_order = np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]
+                box = box[box_order]
+                point = point[box_order]
                 boxes.append(box[:, :4])
                 probs.append(box[:, 4])
+                points.append(point)
             else:
                 boxes.append(box[:, :4])
                 probs.append(box[:, 4])
+                points.append(point)
         boxes = np.array(boxes)
         probs = np.array(probs)
+        points = np.array(points)
 
         if not isinstance(img, Iterable):
             boxes = boxes[0]
             probs = probs[0]
+            points = points[0]
+
+        if landmarks:
+            return boxes, probs, points
 
         return boxes, probs
 
