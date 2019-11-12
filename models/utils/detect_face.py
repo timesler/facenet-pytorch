@@ -60,7 +60,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
             total_boxes = np.transpose(np.vstack([qq1, qq2, qq3, qq4, total_boxes[:, 4]]))
             total_boxes = rerec(total_boxes)
             total_boxes[:, 0:4] = np.fix(total_boxes[:, 0:4]).astype(np.int32)
-            dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes, w, h)
+            y, ey, x, ex = pad(total_boxes, w, h)
 
         numbox = total_boxes.shape[0]
         if numbox > 0:
@@ -92,7 +92,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         if numbox > 0:
             # third stage
             total_boxes = np.fix(total_boxes).astype(np.int32)
-            dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph = pad(total_boxes.copy(), w, h)
+            y, ey, x, ex = pad(total_boxes.copy(), w, h)
             im_data = []
             for k in range(0, numbox):
                 if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
@@ -197,37 +197,17 @@ def nms(boxes, threshold, method):
 
 
 def pad(total_boxes, w, h):
-    tmpw = (total_boxes[:, 2] - total_boxes[:, 0] + 1).astype(np.int32)
-    tmph = (total_boxes[:, 3] - total_boxes[:, 1] + 1).astype(np.int32)
-    numbox = total_boxes.shape[0]
-
-    dx = np.ones((numbox), dtype=np.int32)
-    dy = np.ones((numbox), dtype=np.int32)
-    edx = tmpw.copy().astype(np.int32)
-    edy = tmph.copy().astype(np.int32)
-
     x = total_boxes[:, 0].copy().astype(np.int32)
     y = total_boxes[:, 1].copy().astype(np.int32)
     ex = total_boxes[:, 2].copy().astype(np.int32)
     ey = total_boxes[:, 3].copy().astype(np.int32)
 
-    tmp = np.where(ex > w)
-    edx.flat[tmp] = np.expand_dims(-ex[tmp] + w + tmpw[tmp], 1)
-    ex[tmp] = w
+    x[np.where(x < 1)] = 1
+    y[np.where(y < 1)] = 1
+    ex[np.where(ex > w)] = w
+    ey[np.where(ey > h)] = h
 
-    tmp = np.where(ey > h)
-    edy.flat[tmp] = np.expand_dims(-ey[tmp] + h + tmph[tmp], 1)
-    ey[tmp] = h
-
-    tmp = np.where(x < 1)
-    dx.flat[tmp] = np.expand_dims(2 - x[tmp], 1)
-    x[tmp] = 1
-
-    tmp = np.where(y < 1)
-    dy.flat[tmp] = np.expand_dims(2 - y[tmp], 1)
-    y[tmp] = 1
-
-    return dy, edy, dx, edx, y, ey, x, ex, tmpw, tmph
+    return y, ey, x, ex
 
 
 def rerec(bboxA):
