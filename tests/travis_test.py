@@ -13,7 +13,7 @@ from time import time
 import sys, os
 import glob
 
-from models.mtcnn import MTCNN, prewhiten
+from models.mtcnn import MTCNN, fixed_image_standardization
 from models.inception_resnet_v1 import InceptionResnetV1, get_torch_home
 
 
@@ -52,7 +52,7 @@ trans = transforms.Compose([
 trans_cropped = transforms.Compose([
     np.float32,
     transforms.ToTensor(),
-    prewhiten
+    fixed_image_standardization
 ])
 
 dataset = datasets.ImageFolder('data/test_images', transform=trans)
