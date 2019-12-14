@@ -172,7 +172,7 @@ class MTCNN(nn.Module):
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
-        prewhiten {bool} -- Whether or not to prewhiten images before returning. (default: {True})
+        post_process {bool} -- Whether or not to post process images tensors before returning. (default: {True})
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
             If False, the face with the highest detection probability is returned. (default: {True})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
@@ -184,7 +184,7 @@ class MTCNN(nn.Module):
 
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
-        thresholds=[0.6, 0.7, 0.7], factor=0.709, prewhiten=True,
+        thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
         select_largest=True, keep_all=False, device=None
     ):
         super().__init__()
@@ -194,7 +194,7 @@ class MTCNN(nn.Module):
         self.min_face_size = min_face_size
         self.thresholds = thresholds
         self.factor = factor
-        self.prewhiten = prewhiten
+        self.post_process = post_process
         self.select_largest = select_largest
         self.keep_all = keep_all
 
@@ -218,7 +218,7 @@ class MTCNN(nn.Module):
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
-                self.prewhiten=True, although the returned tensor is prewhitened, the saved face
+                self.post_process=True, although the returned tensor is post processed, the saved face
                 image is not, so it is a true representation of the face in the input image.
                 If `img` is a list of images, `save_path` should be a list of equal length.
                 (default: {None})
@@ -277,8 +277,8 @@ class MTCNN(nn.Module):
                     face_path = save_name + '_' + str(i + 1) + ext
 
                 face = extract_face(im, box, self.image_size, self.margin, face_path)
-                if self.prewhiten:
-                    face = prewhiten(face)
+                if self.post_process:
+                    face = fixed_image_standardization(face)
                 faces_im.append(face)
 
             if self.keep_all:
@@ -380,6 +380,10 @@ class MTCNN(nn.Module):
 
         return boxes, probs
 
+
+def fixed_image_standardization(image_tensor):
+    processed_tensor = (image_tensor - 127.5) / 128.0
+    return processed_tensor
 
 def prewhiten(x):
     mean = x.mean()
