@@ -128,6 +128,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
                 pick = nms(total_boxes, 0.7, "Min")
                 total_boxes = total_boxes[pick, :]
                 points = np.transpose(points[:, :, pick])
+            else:
+                points = np.transpose(points)
 
         batch_boxes.append(total_boxes)
         batch_points.append(points)
