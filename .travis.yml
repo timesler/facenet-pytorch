@@ -15,7 +15,7 @@ matrix:
     - name: "Python 3.7 on Windows"
       os: windows
       language: shell
-      before_install: choco install python --version 3.7.4
+      before_install: choco upgrade chocolatey && choco install python --version 3.7.4
       env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
     - name: "Python 3.6 on Linux"
@@ -32,7 +32,7 @@ matrix:
     - name: "Python 3.6 on Windows"
       os: windows
       language: shell
-      before_install: choco install python --version 3.6.8
+      before_install: choco upgrade chocolatey && choco install python --version 3.6.8
       env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
 
     - name: "Python 3.5 on Linux"
