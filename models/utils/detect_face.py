@@ -129,7 +129,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
                 total_boxes = total_boxes[pick, :]
                 points = points[:, :, pick]
 
-        batch_boxes.append(total_boxes)
+        batch_boxes.append(total_boxes[:, :5])
         batch_points.append(np.transpose(points))
 
     return np.array(batch_boxes), np.array(batch_points)
