@@ -24,7 +24,7 @@ matrix:
 
     - name: "Python 3.6 on macOS"
       os: osx
-      osx_image: xcode9.4
+      osx_image: xcode9.3
       language: shell
       before_install: HOMEBREW_NO_AUTO_UPDATE=1 brew install libomp
       env: PATH=/Users/travis/Library/Python/3.6/bin:$PATH
