@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, RandomSampler
 from tqdm import tqdm
 import time
 
+
 def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Running on device "{device}"')
@@ -29,6 +30,7 @@ def main():
         faces.extend(mtcnn(x))
     elapsed = time.time() - start
     print(f'Elapsed: {elapsed} | EPS: {len(dl) * batch_size / elapsed}')
+
 
 if __name__ == '__main__':
     main()
