@@ -98,7 +98,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     im_data = []
     for k in range(len(y)):
         if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-            img_k = imgs[[image_inds[k]], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
+            img = imgs[image_inds[k]]
+            img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
             im_data.append(imresample(img_k, (48, 48)))
     im_data = torch.cat(im_data, axis=0)
     im_data = (im_data - 127.5) * 0.0078125
