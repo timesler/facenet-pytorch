@@ -24,7 +24,7 @@ def main():
         num_workers=4,
         collate_fn=training.collate_pil,
         batch_size=batch_size,
-        sampler=RandomSampler(ds, replacement=True, num_samples=960),
+        sampler=RandomSampler(ds, replacement=True, num_samples=160),
     )
 
     start = time.time()
@@ -32,7 +32,7 @@ def main():
     for x, _ in tqdm(dl):
         faces.extend(mtcnn(x))
     elapsed = time.time() - start
-    print(f'Elapsed: {elapsed:.3} | EPS: {len(dl) * batch_size / elapsed:.3}')
+    print(f'Elapsed: {elapsed} | EPS: {len(dl) * batch_size / elapsed}')
 
 
 if __name__ == '__main__':
