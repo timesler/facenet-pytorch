@@ -12,7 +12,7 @@ def main():
 
     mtcnn = MTCNN(device=device)
 
-    batch_size = 16
+    batch_size = 1
 
     # Generate data loader
     ds = datasets.ImageFolder(
@@ -21,10 +21,10 @@ def main():
     )
     dl = DataLoader(
         dataset=ds,
-        num_workers=4,
+        num_workers=0,
         collate_fn=training.collate_pil,
         batch_size=batch_size,
-        sampler=RandomSampler(ds, replacement=True, num_samples=160),
+        sampler=RandomSampler(ds, replacement=True, num_samples=1),
     )
 
     start = time.time()
