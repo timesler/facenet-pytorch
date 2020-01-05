@@ -1,4 +1,5 @@
 import torch
+from torch.nn.functional import interpolate
 from torchvision.transforms import functional as F
 from torchvision.ops.boxes import batched_nms
 import numpy as np
@@ -12,8 +13,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if any(img.size != imgs[0].size for img in imgs):
         raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
 
-    imgs = [torch.as_tensor(np.uint8(img)).float().to(device) for img in imgs]
-    imgs = torch.stack(imgs).permute(0, 3, 1, 2)
+    imgs_np = np.stack([np.transpose(np.uint8(img), (2, 0, 1)) for img in imgs])
+    imgs = torch.as_tensor(imgs_np, device=device).float()
 
     batch_size = len(imgs)
     h, w = imgs.shape[2:4]
@@ -32,30 +33,29 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     # First stage
     boxes = []
     image_inds = []
+    all_inds = []
     all_i = 0
     for scale in scales:
         im_data = imresample(imgs, (int(h * scale + 1), int(w * scale + 1)))
         im_data = (im_data - 127.5) * 0.0078125
         reg, probs = pnet(im_data)
     
-        box_inds_scale = []
-        for b_i in range(batch_size):
-            boxes_i = generateBoundingBox(reg[b_i], probs[b_i, 1], scale, threshold[0])
-            boxes.append(boxes_i)
-            
-            image_inds.extend([[b_i, all_i] for _ in range(len(boxes_i))])
-            all_i += 1
+        boxes_scale, image_inds_scale = generateBoundingBox(reg, probs[:, 1], scale, threshold[0])
+        boxes.append(boxes_scale)
+        image_inds.append(image_inds_scale)
+        all_inds.append(all_i + image_inds_scale)
+        all_i += batch_size
 
     boxes = torch.cat(boxes, axis=0)
-    image_inds = torch.as_tensor(image_inds)
+    image_inds = torch.cat(image_inds, axis=0).cpu()
+    all_inds = torch.cat(all_inds, axis=0)
 
     # NMS within each scale + image
-    pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds[:, 1], 0.5, 'Union')
+    pick = batched_nms(boxes[:, :4], boxes[:, 4], all_inds, 0.5)
     boxes, image_inds = boxes[pick], image_inds[pick]
     
     # NMS within each image
-    image_inds = image_inds[:, 0]
-    pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, 'Union')
+    pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
     boxes, image_inds = boxes[pick], image_inds[pick]
 
     regw = boxes[:, 2] - boxes[:, 0]
@@ -72,7 +72,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     im_data = []
     for k in range(len(y)):
         if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-            img_k = imgs[image_inds[k]][:, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]].unsqueeze(0)
+            img = imgs[image_inds[k]]
+            img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
             im_data.append(imresample(img_k, (24, 24)))
     im_data = torch.cat(im_data, axis=0)
     im_data = (im_data - 127.5) * 0.0078125
@@ -87,7 +88,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     mv = out0[:, ipass].permute(1, 0)
 
     # NMS within each image
-    pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, 'Union')
+    pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
     boxes, image_inds, mv = boxes[pick], image_inds[pick], mv[pick]
     boxes = bbreg(boxes, mv)
     boxes = rerec(boxes)
@@ -97,7 +98,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     im_data = []
     for k in range(len(y)):
         if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-            img_k = imgs[image_inds[k]][:, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]].unsqueeze(0)
+            img_k = imgs[[image_inds[k]], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
             im_data.append(imresample(img_k, (48, 48)))
     im_data = torch.cat(im_data, axis=0)
     im_data = (im_data - 127.5) * 0.0078125
@@ -142,30 +143,16 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
 
 
 def bbreg(boundingbox, reg):
+    if reg.shape[1] == 1:
+        reg = torch.reshape(reg, (reg.shape[2], reg.shape[3]))
 
-    try:
-        if reg.shape[1] == 1:
-            reg = torch.reshape(reg, (reg.shape[2], reg.shape[3]))
-
-        w = boundingbox[:, 2] - boundingbox[:, 0] + 1
-        h = boundingbox[:, 3] - boundingbox[:, 1] + 1
-        b1 = boundingbox[:, 0] + reg[:, 0] * w
-        b2 = boundingbox[:, 1] + reg[:, 1] * h
-        b3 = boundingbox[:, 2] + reg[:, 2] * w
-        b4 = boundingbox[:, 3] + reg[:, 3] * h
-        boundingbox[:, :4] = torch.stack([b1, b2, b3, b4]).permute(1, 0)
-
-    except:
-        if reg.shape[1] == 1:
-            reg = np.reshape(reg, (reg.shape[2], reg.shape[3]))
-
-        w = boundingbox[:, 2] - boundingbox[:, 0] + 1
-        h = boundingbox[:, 3] - boundingbox[:, 1] + 1
-        b1 = boundingbox[:, 0] + reg[:, 0] * w
-        b2 = boundingbox[:, 1] + reg[:, 1] * h
-        b3 = boundingbox[:, 2] + reg[:, 2] * w
-        b4 = boundingbox[:, 3] + reg[:, 3] * h
-        boundingbox[:, :4] = np.transpose(np.vstack([b1, b2, b3, b4]))
+    w = boundingbox[:, 2] - boundingbox[:, 0] + 1
+    h = boundingbox[:, 3] - boundingbox[:, 1] + 1
+    b1 = boundingbox[:, 0] + reg[:, 0] * w
+    b2 = boundingbox[:, 1] + reg[:, 1] * h
+    b3 = boundingbox[:, 2] + reg[:, 2] * w
+    b4 = boundingbox[:, 3] + reg[:, 3] * h
+    boundingbox[:, :4] = torch.stack([b1, b2, b3, b4]).permute(1, 0)
 
     return boundingbox
 
@@ -174,14 +161,18 @@ def generateBoundingBox(reg, probs, scale, thresh):
     stride = 2
     cellsize = 12
 
+    reg = reg.permute(1, 0, 2, 3)
+
     mask = probs >= thresh
+    mask_inds = mask.nonzero()
+    image_inds = mask_inds[:, 0]
     score = probs[mask]
     reg = reg[:, mask].permute(1, 0)
-    bb = mask.nonzero().float().flip(1)
+    bb = mask_inds[:, 1:].float().flip(1)
     q1 = ((stride * bb + 1) / scale).floor()
     q2 = ((stride * bb + cellsize - 1 + 1) / scale).floor()
     boundingbox = torch.cat([q1, q2, score.unsqueeze(1), reg], dim=1)
-    return boundingbox
+    return boundingbox, image_inds
 
 
 def nms_numpy(boxes, scores, threshold, method):
@@ -246,7 +237,7 @@ def pad(boxes, w, h):
     ex[ex > w] = w
     ey[ey > h] = h
 
-    return y, ey, x, ex
+    return y.cpu().tolist(), ey.cpu().tolist(), x.cpu().tolist(), ex.cpu().tolist()
 
 
 def rerec(bboxA):
@@ -262,8 +253,7 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    out_shape = (sz[0], sz[1])
-    im_data = torch.nn.functional.interpolate(img, size=out_shape, mode="area")
+    im_data = interpolate(img, size=sz, mode="bilinear", align_corners=False)
     return im_data
 
 
