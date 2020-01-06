@@ -19,10 +19,10 @@ from models.inception_resnet_v1 import InceptionResnetV1, get_torch_home
 
 #### CLEAR ALL OUTPUT FILES ####
 
-checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
-for c in checkpoints:
-    print('Removing {}'.format(c))
-    os.remove(c)
+# checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
+# for c in checkpoints:
+#     print('Removing {}'.format(c))
+#     os.remove(c)
 
 crop_files = glob.glob('data/test_images_aligned/**/*.png')
 for c in crop_files:

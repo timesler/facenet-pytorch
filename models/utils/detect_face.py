@@ -69,64 +69,67 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     y, ey, x, ex = pad(boxes, w, h)
     
     # Second stage
-    im_data = []
-    for k in range(len(y)):
-        if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-            img = imgs[image_inds[k]]
-            img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
-            im_data.append(imresample(img_k, (24, 24)))
-    im_data = torch.cat(im_data, axis=0)
-    im_data = (im_data - 127.5) * 0.0078125
-    out = rnet(im_data)
+    if len(boxes) > 0:
+        im_data = []
+        for k in range(len(y)):
+            if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
+                img = imgs[image_inds[k]]
+                img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                im_data.append(imresample(img_k, (24, 24)))
+        im_data = torch.cat(im_data, axis=0)
+        im_data = (im_data - 127.5) * 0.0078125
+        out = rnet(im_data)
 
-    out0 = out[0].permute(1, 0)
-    out1 = out[1].permute(1, 0)
-    score = out1[1, :]
-    ipass = score > threshold[1]
-    boxes = torch.cat((boxes[ipass, :4], score[ipass].unsqueeze(1)), axis=1)
-    image_inds = image_inds[ipass]
-    mv = out0[:, ipass].permute(1, 0)
+        out0 = out[0].permute(1, 0)
+        out1 = out[1].permute(1, 0)
+        score = out1[1, :]
+        ipass = score > threshold[1]
+        boxes = torch.cat((boxes[ipass, :4], score[ipass].unsqueeze(1)), axis=1)
+        image_inds = image_inds[ipass]
+        mv = out0[:, ipass].permute(1, 0)
 
-    # NMS within each image
-    pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
-    boxes, image_inds, mv = boxes[pick], image_inds[pick], mv[pick]
-    boxes = bbreg(boxes, mv)
-    boxes = rerec(boxes)
+        # NMS within each image
+        pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
+        boxes, image_inds, mv = boxes[pick], image_inds[pick], mv[pick]
+        boxes = bbreg(boxes, mv)
+        boxes = rerec(boxes)
 
     # Third stage
-    y, ey, x, ex = pad(boxes, w, h)
-    im_data = []
-    for k in range(len(y)):
-        if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-            img = imgs[image_inds[k]]
-            img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
-            im_data.append(imresample(img_k, (48, 48)))
-    im_data = torch.cat(im_data, axis=0)
-    im_data = (im_data - 127.5) * 0.0078125
-    out = onet(im_data)
+    points = torch.zeros(0, 5, 2, device=device)
+    if len(boxes) > 0:
+        y, ey, x, ex = pad(boxes, w, h)
+        im_data = [torch.zeros(0, 3, 48, 48, device=device)]
+        for k in range(len(y)):
+            if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
+                img = imgs[image_inds[k]]
+                img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                im_data.append(imresample(img_k, (48, 48)))
+        im_data = torch.cat(im_data, axis=0)
+        im_data = (im_data - 127.5) * 0.0078125
+        out = onet(im_data)
 
-    out0 = out[0].permute(1, 0)
-    out1 = out[1].permute(1, 0)
-    out2 = out[2].permute(1, 0)
-    score = out2[1, :]
-    points = out1
-    ipass = score > threshold[2]
-    points = points[:, ipass]
-    boxes = torch.cat((boxes[ipass, :4], score[ipass].unsqueeze(1)), axis=1)
-    image_inds = image_inds[ipass]
-    mv = out0[:, ipass].permute(1, 0)
+        out0 = out[0].permute(1, 0)
+        out1 = out[1].permute(1, 0)
+        out2 = out[2].permute(1, 0)
+        score = out2[1, :]
+        points = out1
+        ipass = score > threshold[2]
+        points = points[:, ipass]
+        boxes = torch.cat((boxes[ipass, :4], score[ipass].unsqueeze(1)), axis=1)
+        image_inds = image_inds[ipass]
+        mv = out0[:, ipass].permute(1, 0)
 
-    w_i = boxes[:, 2] - boxes[:, 0] + 1
-    h_i = boxes[:, 3] - boxes[:, 1] + 1
-    points_x = w_i.repeat(5, 1) * points[:5, :] + boxes[:, 0].repeat(5, 1) - 1
-    points_y = h_i.repeat(5, 1) * points[5:10, :] + boxes[:, 1].repeat(5, 1) - 1
-    points = torch.stack((points_x, points_y), axis=0).permute(2, 1, 0)
-    boxes = bbreg(boxes, mv)
+        w_i = boxes[:, 2] - boxes[:, 0] + 1
+        h_i = boxes[:, 3] - boxes[:, 1] + 1
+        points_x = w_i.repeat(5, 1) * points[:5, :] + boxes[:, 0].repeat(5, 1) - 1
+        points_y = h_i.repeat(5, 1) * points[5:10, :] + boxes[:, 1].repeat(5, 1) - 1
+        points = torch.stack((points_x, points_y), axis=0).permute(2, 1, 0)
+        boxes = bbreg(boxes, mv)
 
-    # NMS within each image using "Min" strategy
-    # pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
-    pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, 'Min')
-    boxes, image_inds, points = boxes[pick], image_inds[pick], points[pick]
+        # NMS within each image using "Min" strategy
+        # pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
+        pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, 'Min')
+        boxes, image_inds, points = boxes[pick], image_inds[pick], points[pick]
 
     boxes = boxes.cpu().numpy()
     points = points.cpu().numpy()
@@ -254,7 +257,7 @@ def rerec(bboxA):
 
 
 def imresample(img, sz):
-    im_data = interpolate(img, size=sz, mode="bilinear", align_corners=False)
+    im_data = interpolate(img, size=sz, mode="area")
     return im_data
 
 
