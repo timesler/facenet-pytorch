@@ -10,19 +10,22 @@ def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Running on device "{device}"')
 
-    batch_size = 16
+    mtcnn = MTCNN(device=device)
+
+    batch_size = 32
 
     # Generate data loader
-    ds = datasets.ImageFolder('data/test_images/', transform=transforms.Resize((512, 512)))
+    ds = datasets.ImageFolder(
+        root='data/test_images/',
+        transform=transforms.Resize((512, 512))
+    )
     dl = DataLoader(
         dataset=ds,
         num_workers=4,
         collate_fn=training.collate_pil,
         batch_size=batch_size,
-        sampler=RandomSampler(ds, replacement=True, num_samples=160),
+        sampler=RandomSampler(ds, replacement=True, num_samples=960),
     )
-
-    mtcnn = MTCNN()
 
     start = time.time()
     faces = []
