@@ -81,13 +81,6 @@ aligned_fromfile = torch.stack(aligned_fromfile)
 
 #### TEST EMBEDDINGS ####
 
-               angelina_jolie  bradley_cooper  ...  paul_rudd  shea_whigham
-angelina_jolie        0.000000        1.482895  ...   1.438450      1.437583
-bradley_cooper        1.482895        0.000000  ...   1.029880      1.061939
-kate_siegel           0.886342        1.345686  ...   1.363125      1.338803
-paul_rudd             1.438450        1.029880  ...   0.000000      1.066040
-shea_whigham          1.437583        1.061939  ...   1.066040      0.000000
-
 expected = [
     [
         [0.000000, 1.482895, 0.886342, 1.438450, 1.437583],
