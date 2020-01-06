@@ -12,7 +12,7 @@ def main():
 
     mtcnn = MTCNN(device=device)
 
-    batch_size = 16
+    batch_size = 32
 
     # Generate data loader
     ds = datasets.ImageFolder(

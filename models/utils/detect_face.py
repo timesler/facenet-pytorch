@@ -13,8 +13,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if any(img.size != imgs[0].size for img in imgs):
         raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
 
-    imgs_np = np.stack([np.transpose(np.uint8(img), (2, 0, 1)) for img in imgs])
-    imgs = torch.as_tensor(imgs_np, device=device).float()
+    imgs_np = np.stack([np.uint8(img) for img in imgs])
+    imgs = torch.as_tensor(imgs_np, device=device).permute(0, 3, 1, 2).float()
 
     batch_size = len(imgs)
     h, w = imgs.shape[2:4]
@@ -73,8 +73,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img = imgs[image_inds[k]]
-                img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
                 im_data.append(imresample(img_k, (24, 24)))
         im_data = torch.cat(im_data, axis=0)
         im_data = (im_data - 127.5) * 0.0078125
@@ -98,11 +97,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     points = torch.zeros(0, 5, 2, device=device)
     if len(boxes) > 0:
         y, ey, x, ex = pad(boxes, w, h)
-        im_data = [torch.zeros(0, 3, 48, 48, device=device)]
+        im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img = imgs[image_inds[k]]
-                img_k = img[:, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
                 im_data.append(imresample(img_k, (48, 48)))
         im_data = torch.cat(im_data, axis=0)
         im_data = (im_data - 127.5) * 0.0078125
