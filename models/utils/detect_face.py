@@ -204,17 +204,13 @@ def nms_numpy(boxes, scores, threshold, method):
 
         w = np.maximum(0.0, xx2 - xx1 + 1)
         h = np.maximum(0.0, yy2 - yy1 + 1)
-        del xx1, yy1, xx2, yy2
 
         inter = w * h
-        del w, h
-
         if method is "Min":
             o = inter / np.minimum(area[i], area[idx])
         else:
             o = inter / (area[i] + area[idx] - inter)
         I = I[np.where(o <= threshold)]
-        del o
 
     pick = pick[:counter]
     return pick
@@ -238,7 +234,7 @@ def batched_nms_numpy(boxes, scores, idxs, threshold, method):
 
 
 def pad(boxes, w, h):
-    boxes = boxes.trunc().int()
+    boxes = boxes.trunc().int().cpu().numpy()
     x = boxes[:, 0]
     y = boxes[:, 1]
     ex = boxes[:, 2]
@@ -249,7 +245,7 @@ def pad(boxes, w, h):
     ex[ex > w] = w
     ey[ey > h] = h
 
-    return y.cpu().tolist(), ey.cpu().tolist(), x.cpu().tolist(), ex.cpu().tolist()
+    return y, ey, x, ex
 
 
 def rerec(bboxA):
