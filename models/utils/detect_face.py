@@ -294,7 +294,7 @@ def save_img(img, path):
 
 def get_size(img):
     if isinstance(img, np.ndarray):
-        return img.shape
+        return img.shape[1::-1]
     else:
         return img.size
 
