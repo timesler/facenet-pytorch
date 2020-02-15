@@ -287,7 +287,7 @@ def crop_resize(img, box, image_size):
 
 def save_img(img, path):
     if isinstance(img, np.ndarray):
-        cv2.imwrite(path, img)
+        cv2.imwrite(path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     else:
         img.save(path)
 
