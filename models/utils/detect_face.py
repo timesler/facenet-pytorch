@@ -289,7 +289,7 @@ def save_img(img, path):
     if isinstance(img, np.ndarray):
         cv2.imwrite(path, img)
     else:
-        face.save(save_path)
+        img.save(save_path)
 
 
 def get_size(img):
