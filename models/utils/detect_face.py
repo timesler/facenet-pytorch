@@ -276,7 +276,7 @@ def imresample(img, sz):
 def crop_resize(img, box, image_size):
     if isinstance(img, np.ndarray):
         out = cv2.resize(
-            img[box[0]:box[2], box[1]:box[3]],
+            img[box[1]:box[3], box[0]:box[2]],
             (image_size, image_size),
             cv2.INTER_LINEAR
         )
@@ -319,12 +319,12 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
         margin * (box[2] - box[0]) / (image_size - margin),
         margin * (box[3] - box[1]) / (image_size - margin),
     ]
-    img_size = get_size(img)
+    raw_image_size = get_size(img)
     box = [
         int(max(box[0] - margin[0] / 2, 0)),
         int(max(box[1] - margin[1] / 2, 0)),
-        int(min(box[2] + margin[0] / 2, img_size[0])),
-        int(min(box[3] + margin[1] / 2, img_size[1])),
+        int(min(box[2] + margin[0] / 2, raw_image_size[0])),
+        int(min(box[3] + margin[1] / 2, raw_image_size[1])),
     ]
 
     face = crop_resize(img, box, image_size)
