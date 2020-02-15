@@ -2,19 +2,27 @@ import torch
 from torch.nn.functional import interpolate
 from torchvision.transforms import functional as F
 from torchvision.ops.boxes import batched_nms
+import cv2
+from PIL import Image
 import numpy as np
 import os
-from collections.abc import Iterable
 
 
 def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
-    if not isinstance(imgs, Iterable):
-        imgs = [imgs]
-    if any(img.size != imgs[0].size for img in imgs):
-        raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
+    if isinstance(imgs, (np.ndarray, torch.Tensor)):
+        imgs = torch.as_tensor(imgs, device=device)
+        if len(imgs.shape) == 3:
+            imgs = imgs.unsqueeze(0)
+    else:
+        if not isinstance(imgs, (list, tuple)):
+            imgs = [imgs]
+        if any(img.size != imgs[0].size for img in imgs):
+            raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
+        imgs = np.stack([np.uint8(img) for img in imgs])
 
-    imgs_np = np.stack([np.uint8(img) for img in imgs])
-    imgs = torch.as_tensor(imgs_np, device=device).permute(0, 3, 1, 2).float()
+    imgs = torch.as_tensor(imgs, device=device)
+
+    imgs = imgs.permute(0, 3, 1, 2).float()
 
     batch_size = len(imgs)
     h, w = imgs.shape[2:4]
@@ -265,6 +273,32 @@ def imresample(img, sz):
     return im_data
 
 
+def crop_resize(img, box, image_size):
+    if isinstance(img, np.ndarray):
+        out = cv2.resize(
+            img[box[0]:box[2], box[1]:box[3]],
+            (image_size, image_size),
+            cv2.INTER_LINEAR
+        )
+    else:
+        out = img.crop(box).resize((image_size, image_size), Image.BILINEAR)
+    return out
+
+
+def save_img(img, path):
+    if isinstance(img, np.ndarray):
+        cv2.imwrite(path, img)
+    else:
+        face.save(save_path)
+
+
+def get_size(img):
+    if isinstance(img, np.ndarray):
+        return img.shape
+    else:
+        return img.size
+
+
 def extract_face(img, box, image_size=160, margin=0, save_path=None):
     """Extract face + margin from PIL Image given bounding box.
     
@@ -285,19 +319,19 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
         margin * (box[2] - box[0]) / (image_size - margin),
         margin * (box[3] - box[1]) / (image_size - margin),
     ]
+    img_size = get_size(img)
     box = [
         int(max(box[0] - margin[0] / 2, 0)),
         int(max(box[1] - margin[1] / 2, 0)),
-        int(min(box[2] + margin[0] / 2, img.size[0])),
-        int(min(box[3] + margin[1] / 2, img.size[1])),
+        int(min(box[2] + margin[0] / 2, img_size[0])),
+        int(min(box[3] + margin[1] / 2, img_size[1])),
     ]
 
-    face = img.crop(box).resize((image_size, image_size), 2)
+    face = crop_resize(img, box, image_size)
 
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path) + "/", exist_ok=True)
-        save_args = {"compress_level": 0} if ".png" in save_path else {}
-        face.save(save_path, **save_args)
+        save_img(face, path)
 
     face = F.to_tensor(np.float32(face))
 

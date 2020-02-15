@@ -2,7 +2,6 @@ import torch
 from torch import nn
 import numpy as np
 import os
-from collections.abc import Iterable
 
 from .utils.detect_face import detect_face, extract_face
 
@@ -158,8 +157,11 @@ class ONet(nn.Module):
 class MTCNN(nn.Module):
     """MTCNN face detection module.
 
-    This class loads pretrained P-, R-, and O-nets and, given raw input images as PIL images,
-    returns images cropped to include the face only. Cropped faces can optionally be saved to file
+    This class loads pretrained P-, R-, and O-nets and returns images cropped to include the face
+    only, given raw input images of one of the following types:
+        - PIL image or list of PIL images
+        - numpy.ndarray (uint8) representing either a single image (3D) or a batch of images (4D).
+    Cropped faces can optionally be saved to file
     also.
     
     Keyword Arguments:
@@ -172,9 +174,11 @@ class MTCNN(nn.Module):
         min_face_size {int} -- Minimum face size to search for. (default: {20})
         thresholds {list} -- MTCNN face detection thresholds (default: {[0.6, 0.7, 0.7]})
         factor {float} -- Factor used to create a scaling pyramid of face sizes. (default: {0.709})
-        post_process {bool} -- Whether or not to post process images tensors before returning. (default: {True})
+        post_process {bool} -- Whether or not to post process images tensors before returning.
+            (default: {True})
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
-            If False, the face with the highest detection probability is returned. (default: {True})
+            If False, the face with the highest detection probability is returned.
+            (default: {True})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
             select_largest parameter. If a save_path is specified, the first face is saved to that
             path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
@@ -207,19 +211,18 @@ class MTCNN(nn.Module):
             self.device = device
             self.to(device)
 
-
     def forward(self, img, save_path=None, return_prob=False):
-        """Run MTCNN face detection on a PIL image. This method performs both detection and
-        extraction of faces, returning tensors representing detected faces rather than the bounding
-        boxes. To access bounding boxes, see the MTCNN.detect() method below.
+        """Run MTCNN face detection on a PIL image or numpy array. This method performs both
+        detection and extraction of faces, returning tensors representing detected faces rather
+        than the bounding boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
-            img {PIL.Image or list} -- A PIL image or a list of PIL images.
+            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, or list.
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
-                self.post_process=True, although the returned tensor is post processed, the saved face
-                image is not, so it is a true representation of the face in the input image.
+                self.post_process=True, although the returned tensor is post processed, the saved
+                face image is not, so it is a true representation of the face in the input image.
                 If `img` is a list of images, `save_path` should be a list of equal length.
                 (default: {None})
             return_prob {bool} -- Whether or not to return the detection probability.
@@ -245,7 +248,7 @@ class MTCNN(nn.Module):
 
         # Determine if a batch or single image was passed
         batch_mode = True
-        if not isinstance(img, Iterable):
+        if not isinstance(img, (list, tuple)):
             img = [img]
             batch_boxes = [batch_boxes]
             batch_probs = [batch_probs]
@@ -308,7 +311,7 @@ class MTCNN(nn.Module):
         followed by the extract_face() function.
         
         Arguments:
-            img {PIL.Image or list} -- A PIL image or a list of PIL images.
+            img {PIL.Image, np.ndarray, or list} -- A PIL image or a list of PIL images.
 
         Keyword Arguments:
             landmarks {bool} -- Whether to return facial landmarks in addition to bounding boxes.
@@ -370,7 +373,7 @@ class MTCNN(nn.Module):
         probs = np.array(probs)
         points = np.array(points)
 
-        if not isinstance(img, Iterable):
+        if not isinstance(img, (list, tuple)):
             boxes = boxes[0]
             probs = probs[0]
             points = points[0]
