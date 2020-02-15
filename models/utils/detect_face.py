@@ -331,7 +331,7 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
 
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path) + "/", exist_ok=True)
-        save_img(face, path)
+        save_img(face, save_path)
 
     face = F.to_tensor(np.float32(face))
 
