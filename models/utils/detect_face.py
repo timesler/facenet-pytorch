@@ -144,8 +144,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     batch_points = []
     for b_i in range(batch_size):
         b_i_inds = np.where(image_inds == b_i)
-        batch_boxes.append(boxes[b_i_inds])
-        batch_points.append(points[b_i_inds])
+        batch_boxes.append(boxes[b_i_inds].copy())
+        batch_points.append(points[b_i_inds].copy())
 
     batch_boxes, batch_points = np.array(batch_boxes), np.array(batch_points)
 
@@ -189,10 +189,10 @@ def nms_numpy(boxes, scores, threshold, method):
     if boxes.size == 0:
         return np.empty((0, 3))
 
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
+    x1 = boxes[:, 0].copy()
+    y1 = boxes[:, 1].copy()
+    x2 = boxes[:, 2].copy()
+    y2 = boxes[:, 3].copy()
     s = scores
     area = (x2 - x1 + 1) * (y2 - y1 + 1)
 
@@ -205,13 +205,13 @@ def nms_numpy(boxes, scores, threshold, method):
         counter += 1
         idx = I[0:-1]
 
-        xx1 = np.maximum(x1[i], x1[idx])
-        yy1 = np.maximum(y1[i], y1[idx])
-        xx2 = np.minimum(x2[i], x2[idx])
-        yy2 = np.minimum(y2[i], y2[idx])
+        xx1 = np.maximum(x1[i], x1[idx]).copy()
+        yy1 = np.maximum(y1[i], y1[idx]).copy()
+        xx2 = np.minimum(x2[i], x2[idx]).copy()
+        yy2 = np.minimum(y2[i], y2[idx]).copy()
 
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
+        w = np.maximum(0.0, xx2 - xx1 + 1).copy()
+        h = np.maximum(0.0, yy2 - yy1 + 1).copy()
 
         inter = w * h
         if method is "Min":
@@ -220,7 +220,7 @@ def nms_numpy(boxes, scores, threshold, method):
             o = inter / (area[i] + area[idx] - inter)
         I = I[np.where(o <= threshold)]
 
-    pick = pick[:counter]
+    pick = pick[:counter].copy()
     return pick
 
 
@@ -278,8 +278,8 @@ def crop_resize(img, box, image_size):
         out = cv2.resize(
             img[box[1]:box[3], box[0]:box[2]],
             (image_size, image_size),
-            cv2.INTER_LINEAR
-        )
+            interpolation=cv2.INTER_AREA
+        ).copy()
     else:
         out = img.crop(box).resize((image_size, image_size), Image.BILINEAR)
     return out
