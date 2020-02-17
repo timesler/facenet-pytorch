@@ -281,7 +281,7 @@ def crop_resize(img, box, image_size):
             interpolation=cv2.INTER_AREA
         ).copy()
     else:
-        out = img.crop(box).resize((image_size, image_size), Image.BILINEAR)
+        out = img.crop(box).copy().resize((image_size, image_size), Image.BILINEAR)
     return out
 
 
