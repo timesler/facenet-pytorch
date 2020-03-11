@@ -1,4 +1,5 @@
-from facenet_pytorch import MTCNN, InceptionResnetV1, fixed_image_standardization, training
+from facenet_pytorch import MTCNN, InceptionResnetV1, fixed_image_standardization
+from models.utils import training
 import torch
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch import optim
@@ -8,20 +9,20 @@ from torchvision import datasets, transforms
 import numpy as np
 import os
 
-from tqdm import tqdm
+# data_dir = '../../datasets/CASIA-WebFace'
 
-data_dir = '../../datasets/CASIA-WebFace'
-
-#data_dir = '../../datasets/test'
+data_dir = '../../datasets/test'
 
 batch_size = 64
-epochs = 20
+epochs = 2
 workers = 0 if os.name == 'nt' else 8
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Running on device: {}'.format(device))
 
+
+# Cropping
 
 # mtcnn = MTCNN(
 #     image_size=160, margin=0, min_face_size=20,
@@ -127,8 +128,8 @@ for epoch in range(epochs):
         writer=writer
     )
 
+
 PATH = "~/work/facenet_pytorch/examples/checkpoints"
-os.mkdir(PATH)
-torch.save(resnet, f"{PATH}/model_1.pt")
+torch.save(resnet, "checkpoints/1.pt")
 
 writer.close()
