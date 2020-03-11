@@ -248,7 +248,7 @@ class MTCNN(nn.Module):
 
         # Determine if a batch or single image was passed
         batch_mode = True
-        if not isinstance(img, (list, tuple)):
+        if not isinstance(img, (list, tuple)) and not (isinstance(img, np.ndarray) and len(img.shape) == 4):
             img = [img]
             batch_boxes = [batch_boxes]
             batch_probs = [batch_probs]
@@ -373,7 +373,7 @@ class MTCNN(nn.Module):
         probs = np.array(probs)
         points = np.array(points)
 
-        if not isinstance(img, (list, tuple)):
+        if not isinstance(img, (list, tuple)) and not (isinstance(img, np.ndarray) and len(img.shape) == 4):
             boxes = boxes[0]
             probs = probs[0]
             points = points[0]
