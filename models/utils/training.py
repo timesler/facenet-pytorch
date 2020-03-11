@@ -99,9 +99,11 @@ def pass_epoch(
         loss_batch = loss_fn(y_pred, y)
 
         if model.training:
+
             loss_batch.backward()
             optimizer.step()
             optimizer.zero_grad()
+
 
         metrics_batch = {}
         for metric_name, metric_fn in batch_metrics.items():

@@ -12,3 +12,6 @@ test.py
 .cache
 .ipython
 .local
+.idea
+data/test
+data/test_cropped
