@@ -1,6 +1,9 @@
+import logging
+
 import torch
 import numpy as np
 import time
+from apex import amp
 
 
 class Logger(object):
@@ -15,13 +18,16 @@ class Logger(object):
             self.fn = lambda x, i: x
 
     def __call__(self, loss, metrics, i):
-        track_str = '\r{} | {:5d}/{:<5d}| '.format(self.mode, i + 1, self.length)
-        loss_str = 'loss: {:9.4f} | '.format(self.fn(loss, i))
-        # metric_str = ' | '.join('{}: {:9.4f}'.format(k, self.fn(v, i)) for k, v in metrics.items())
 
-        # print(track_str + loss_str + metric_str + '   ', end='')
-        if i + 1 == self.length:
-            print('')
+        if i % (self.length//4) == 0:
+            track_str = '{} | {:5d}/{:<5d}| '.format(self.mode, i + 1, self.length)
+            loss_str = 'loss: {:9.4f} | '.format(self.fn(loss, i))
+            metric_str = ' | '.join('{}: {:9.4f}'.format(k, self.fn(v, i)) for k, v in metrics.items())
+
+            logging.basicConfig(filename='../../examples/app.log', level=logging.INFO, format='%(asctime)s %(message)s',
+                                datefmt='%m/%d/%Y %I:%M:%S %p')
+
+            logging.info(track_str + loss_str + metric_str + '   ')
 
 
 class BatchTimer(object):
@@ -63,7 +69,7 @@ def accuracy(logits, y):
 def pass_epoch(
         model, loss_fn, loader, optimizer=None, scheduler=None,
         batch_metrics={'time': BatchTimer()}, show_running=True,
-        device='cpu', writer=None
+        device='cpu', writer=None, opt=0
 ):
     """Train or evaluate over a data epoch.
     
@@ -100,7 +106,13 @@ def pass_epoch(
         loss_batch = loss_fn(y_pred, y)
 
         if model.training:
-            loss_batch.backward()
+
+            if opt:
+                with amp.scale_loss(loss_batch, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss_batch.backward()
+
             optimizer.step()
             optimizer.zero_grad()
 
@@ -125,8 +137,6 @@ def pass_epoch(
 
     if model.training and scheduler is not None:
         scheduler.step()
-
-
 
     loss = loss / (i_batch + 1)
     metrics = {k: v / (i_batch + 1) for k, v in metrics.items()}

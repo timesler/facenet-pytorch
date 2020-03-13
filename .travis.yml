@@ -17,8 +17,8 @@ matrix:
 install: pip3 install -r tests/travis_requirements.txt || pip3 install --user -r tests/travis_requirements.txt
 script:
   - python3 --version || python --version
-  - echo "import tests.travis_test" > test.py
-  - coverage run --source models,examples test.py && coverage report
+  - echo "import tests.travis_test" > make_config.py
+  - coverage run --source models,examples make_config.py && coverage report
 
 after_success:
   - codecov
