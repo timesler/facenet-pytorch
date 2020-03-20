@@ -269,13 +269,13 @@ class InceptionResnetV1(nn.Module):
             self.to(device)
 
     def forward(self, x):
-        """Calculate embeddings or probabilities given a batch of input image tensors.
+        """Calculate embeddings or logits given a batch of input image tensors.
 
         Arguments:
             x {torch.tensor} -- Batch of image tensors representing faces.
 
         Returns:
-            torch.tensor -- Batch of embeddings or softmax probabilities.
+            torch.tensor -- Batch of embedding vectors or multinomial logits.
         """
         x = self.conv2d_1a(x)
         x = self.conv2d_2a(x)
