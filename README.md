@@ -149,7 +149,7 @@ See the [notebook on kaggle](https://www.kaggle.com/timesler/comparison-of-face-
 
 ### *The FastMTCNN algorithm*
 
-This algorithm demonstrates how to achieve extremely efficient face detection specifically in videos, but taking advantage of similarities between adjacent frames.
+This algorithm demonstrates how to achieve extremely efficient face detection specifically in videos, by taking advantage of similarities between adjacent frames.
 
 See the [notebook on kaggle](https://www.kaggle.com/timesler/fast-mtcnn-detector-55-fps-at-full-resolution).
 
