@@ -143,7 +143,16 @@ This notebook demonstrates the use of three face detection packages:
 1. mtcnn
 1. dlib
 
-Each package is tested for its speed in detecting the faces in a set of 300 images (all frames from one video), with GPU support enabled.
+Each package is tested for its speed in detecting the faces in a set of 300 images (all frames from one video), with GPU support enabled. Performance is based on Kaggle's P100 notebook kernel. Results are summarized below.
+
+|Package|FPS (1080x1920)|FPS (720x1280)|FPS (540x960)|
+|---|---|---|---|
+|facenet-pytorch|12.97|20.32|25.50|
+|facenet-pytorch (non-batched)|9.75|14.81|19.68|
+|dlib|3.80|8.39|14.53|
+|mtcnn|3.04|5.70|8.23|
+
+![](examples/performance-comparison.png)
 
 See the [notebook on kaggle](https://www.kaggle.com/timesler/comparison-of-face-detection-packages).
 
