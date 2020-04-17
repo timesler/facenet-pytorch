@@ -146,6 +146,46 @@ for i, box in enumerate(boxes):
 mtcnn(img, save_path='data/tmp.png')
 
 
+#### MTCNN TYPES TEST ####
+
+img = Image.open('data/multiface.jpg')
+
+mtcnn = MTCNN(keep_all=True)
+boxes_ref, _ = mtcnn.detect(img)
+_ = mtcnn(img)
+
+mtcnn = MTCNN(keep_all=True).double()
+boxes_test, _ = mtcnn.detect(img)
+_ = mtcnn(img)
+
+box_diff = boxes_ref[np.argsort(boxes_ref[:,1])] - boxes_test[np.argsort(boxes_test[:,1])]
+total_error = np.sum(np.abs(box_diff))
+print('\nfp64 Total box error: {}'.format(total_error))
+
+assert total_error < 1e-2
+
+
+# half is not supported on CPUs, only GPUs
+if torch.cuda.is_available():
+
+    mtcnn = MTCNN(keep_all=True, device='cuda').half()
+    boxes_test, _ = mtcnn.detect(img)
+    _ = mtcnn(img)
+
+    box_diff = boxes_ref[np.argsort(boxes_ref[:,1])] - boxes_test[np.argsort(boxes_test[:,1])]
+    print('fp16 Total box error: {}'.format(np.sum(np.abs(box_diff))))
+
+    # test new automatic multi precision to compare
+    if hasattr(torch.cuda, 'amp'):
+        with torch.cuda.amp.autocast():
+            mtcnn = MTCNN(keep_all=True, device='cuda')
+            boxes_test, _ = mtcnn.detect(img)
+            _ = mtcnn(img)
+
+        box_diff = boxes_ref[np.argsort(boxes_ref[:,1])] - boxes_test[np.argsort(boxes_test[:,1])]
+        print('AMP total box error: {}'.format(np.sum(np.abs(box_diff))))
+
+            
 #### MULTI-IMAGE TEST ####
 
 mtcnn = MTCNN(keep_all=True)
