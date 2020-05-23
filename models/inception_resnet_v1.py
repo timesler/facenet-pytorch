@@ -208,10 +208,8 @@ class InceptionResnetV1(nn.Module):
             tmp_classes = 8631
         elif pretrained == 'casia-webface':
             tmp_classes = 10575
-        elif pretrained is None and self.num_classes is None:
-            raise Exception('At least one of "pretrained" or "num_classes" must be specified')
-        else:
-            tmp_classes = self.num_classes
+        elif pretrained is None and self.classify and self.num_classes is None:
+            raise Exception('If "pretrained" is not specified and "classify" is True, "num_classes" must be specified')
 
 
         # Define layers
@@ -255,12 +253,12 @@ class InceptionResnetV1(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
         self.last_linear = nn.Linear(1792, 512, bias=False)
         self.last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=True)
-        self.logits = nn.Linear(512, tmp_classes)
 
         if pretrained is not None:
+            self.logits = nn.Linear(512, tmp_classes)
             load_weights(self, pretrained)
 
-        if self.num_classes is not None:
+        if self.classify and self.num_classes is not None:
             self.logits = nn.Linear(512, self.num_classes)
 
         self.device = torch.device('cpu')
