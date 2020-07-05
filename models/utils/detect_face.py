@@ -2,10 +2,15 @@ import torch
 from torch.nn.functional import interpolate
 from torchvision.transforms import functional as F
 from torchvision.ops.boxes import batched_nms
-import cv2
 from PIL import Image
 import numpy as np
 import os
+
+# OpenCV is optional, but required if using numpy arrays instead of PIL
+try:
+    import cv2
+except:
+    pass
 
 
 def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
