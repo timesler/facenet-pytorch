@@ -38,7 +38,7 @@ def fixed_batch_processing(im_data, model, model_name):
         out = model(batch)
         if is_onet:
             b.append(out[0])
-            c.append(out[1]
+            c.append(out[1])
             a.append(out[2])
         else:
             b.append(out[0])
