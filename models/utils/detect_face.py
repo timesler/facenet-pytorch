@@ -5,6 +5,7 @@ from torchvision.ops.boxes import batched_nms
 from PIL import Image
 import numpy as np
 import os
+import math
 
 # OpenCV is optional, but required if using numpy arrays instead of PIL
 try:
@@ -12,6 +13,41 @@ try:
 except:
     pass
 
+def fixed_batch_processing(im_data, model, model_name):
+    """
+    Use fixed-batch size for rnet and onet to avoid out of GPU memory error
+    im_data:   input for 'rnet' or 'onet'
+    model : rnet or onet
+    model_name : 'rnet' or 'onet'
+    ""
+    assert (model_name in ['rnet', 'onet'])
+
+    batch_size = 512
+    n = im_data.shape[0]
+    n_iter = int(math.ceil(n / float(batch_size)))
+    b = []
+    a = []
+    is_onet = (model_name == 'onet')
+    if is_onet
+        c = []
+
+    for i in range(n_iter):
+        min_ind = i * batch_size
+        max_ind = (i + 1) * batch_size
+        batch = im_data[min_ind:max_ind]
+        out = model(batch)
+        if is_onet:
+            b.append(out[0])
+            c.append(out[1]
+            a.append(out[2])
+        else:
+            b.append(out[0])
+            a.append(out[1])
+
+    if is_onet:
+        return torch.cat(b, dim=0), torch.cat(c, dim=0), torch.cat(a, dim=0)
+    else:
+        return torch.cat(b, dim=0), torch.cat(a, dim=0)
 
 def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if isinstance(imgs, (np.ndarray, torch.Tensor)):
@@ -91,7 +127,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
                 im_data.append(imresample(img_k, (24, 24)))
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
-        out = rnet(im_data)
+
+        #This is equivalent to out = rnet(im_data). Here we use the fixed batch size to
+        #avoid GPU out of memory issue.
+        out = fixed_batch_processing(im_data, rnet, 'rnet')
 
         out0 = out[0].permute(1, 0)
         out1 = out[1].permute(1, 0)
@@ -118,7 +157,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
                 im_data.append(imresample(img_k, (48, 48)))
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
-        out = onet(im_data)
+        
+        #This is equivalent to out = onet(im_data). Here we use the fixed batch size to avoid
+        # GPU out of memory issue.
+        out = fixed_batch_processing(im_data, onet, 'onet')
 
         out0 = out[0].permute(1, 0)
         out1 = out[1].permute(1, 0)
