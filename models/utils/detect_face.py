@@ -28,7 +28,7 @@ def fixed_batch_processing(im_data, model, model_name):
     b = []
     a = []
     is_onet = (model_name == 'onet')
-    if is_onet
+    if is_onet:
         c = []
 
     for i in range(n_iter):
