@@ -19,7 +19,7 @@ def fixed_batch_processing(im_data, model, model_name):
     im_data:   input for 'rnet' or 'onet'
     model : rnet or onet
     model_name : 'rnet' or 'onet'
-    ""
+    """
     assert (model_name in ['rnet', 'onet'])
 
     batch_size = 512
