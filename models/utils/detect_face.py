@@ -13,41 +13,14 @@ try:
 except:
     pass
 
-def fixed_batch_processing(im_data, model, model_name):
-    """
-    Use fixed-batch size for rnet and onet to avoid out of GPU memory error
-    im_data:   input for 'rnet' or 'onet'
-    model : rnet or onet
-    model_name : 'rnet' or 'onet'
-    """
-    assert (model_name in ['rnet', 'onet'])
-
+def fixed_batch_process(im_data, model):
     batch_size = 512
-    n = im_data.shape[0]
-    n_iter = int(math.ceil(n / float(batch_size)))
-    b = []
-    a = []
-    is_onet = (model_name == 'onet')
-    if is_onet:
-        c = []
+    out = []
+    for i in range(0, len(im_data), batch_size):
+        batch = im_data[i:(i+batch_size)]
+        out.append(model(batch))
 
-    for i in range(n_iter):
-        min_ind = i * batch_size
-        max_ind = (i + 1) * batch_size
-        batch = im_data[min_ind:max_ind]
-        out = model(batch)
-        if is_onet:
-            b.append(out[0])
-            c.append(out[1])
-            a.append(out[2])
-        else:
-            b.append(out[0])
-            a.append(out[1])
-
-    if is_onet:
-        return torch.cat(b, dim=0), torch.cat(c, dim=0), torch.cat(a, dim=0)
-    else:
-        return torch.cat(b, dim=0), torch.cat(a, dim=0)
+    return tuple(torch.cat(v, dim=0) for v in zip(*out))
 
 def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if isinstance(imgs, (np.ndarray, torch.Tensor)):
@@ -83,8 +56,11 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     # First stage
     boxes = []
     image_inds = []
-    all_inds = []
+
+    scale_picks = []
+
     all_i = 0
+    offset = 0
     for scale in scales:
         im_data = imresample(imgs, (int(h * scale + 1), int(w * scale + 1)))
         im_data = (im_data - 127.5) * 0.0078125
@@ -93,17 +69,20 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         boxes_scale, image_inds_scale = generateBoundingBox(reg, probs[:, 1], scale, threshold[0])
         boxes.append(boxes_scale)
         image_inds.append(image_inds_scale)
-        all_inds.append(all_i + image_inds_scale)
-        all_i += batch_size
+
+        pick = batched_nms(boxes_scale[:, :4], boxes_scale[:, 4], image_inds_scale, 0.5)
+        scale_picks.append(pick + offset)
+        offset += boxes_scale.shape[0]
 
     boxes = torch.cat(boxes, dim=0)
-    image_inds = torch.cat(image_inds, dim=0).cpu()
-    all_inds = torch.cat(all_inds, dim=0)
+    image_inds = torch.cat(image_inds, dim=0)
+
+    scale_picks = torch.cat(scale_picks, dim=0)
 
     # NMS within each scale + image
-    pick = batched_nms(boxes[:, :4], boxes[:, 4], all_inds, 0.5)
-    boxes, image_inds = boxes[pick], image_inds[pick]
-    
+    boxes, image_inds = boxes[scale_picks], image_inds[scale_picks]
+
+
     # NMS within each image
     pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
     boxes, image_inds = boxes[pick], image_inds[pick]
@@ -128,9 +107,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
 
-        #This is equivalent to out = rnet(im_data). Here we use the fixed batch size to
-        #avoid GPU out of memory issue.
-        out = fixed_batch_processing(im_data, rnet, 'rnet')
+        # This is equivalent to out = rnet(im_data) to avoid GPU out of memory.
+        out = fixed_batch_process(im_data, rnet)
 
         out0 = out[0].permute(1, 0)
         out1 = out[1].permute(1, 0)
@@ -158,9 +136,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
         
-        #This is equivalent to out = onet(im_data). Here we use the fixed batch size to avoid
-        # GPU out of memory issue.
-        out = fixed_batch_processing(im_data, onet, 'onet')
+        # This is equivalent to out = onet(im_data) to avoid GPU out of memory.
+        out = fixed_batch_process(im_data, onet)
 
         out0 = out[0].permute(1, 0)
         out1 = out[1].permute(1, 0)
@@ -187,6 +164,8 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
 
     boxes = boxes.cpu().numpy()
     points = points.cpu().numpy()
+
+    image_inds = image_inds.cpu()
 
     batch_boxes = []
     batch_points = []
