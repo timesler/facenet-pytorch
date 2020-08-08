@@ -213,7 +213,7 @@ def test_loaded_params(mdl, tf_params, tf_layers):
     tf_means = torch.stack([torch.tensor(p).mean() for p in tf_params])
     for name, param in mdl.named_parameters():
         pt_mean = param.data.mean()
-        matching_inds = ((tf_means - pt_mean).abs() < 1e-8).nonzero()
+        matching_inds = torch.nonzero(((tf_means - pt_mean).abs() < 1e-8), as_tuple=False)
         print(f'{name} equivalent to {[tf_layers[i] for i in matching_inds]}')
 
 
