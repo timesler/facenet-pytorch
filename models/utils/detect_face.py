@@ -186,7 +186,7 @@ def generateBoundingBox(reg, probs, scale, thresh):
     reg = reg.permute(1, 0, 2, 3)
 
     mask = probs >= thresh
-    mask_inds = torch.nonzero(mask, as_tuple=False)
+    mask_inds = mask.nonzero()
     image_inds = mask_inds[:, 0]
     score = probs[mask]
     reg = reg[:, mask].permute(1, 0)
