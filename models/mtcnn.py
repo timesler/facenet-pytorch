@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from .utils.detect_face import detect_face, extract_face
-
+from .utils.align_trans import get_reference_facial_points, warp_and_crop_face
 
 class PNet(nn.Module):
     """MTCNN PNet.
@@ -210,6 +210,8 @@ class MTCNN(nn.Module):
         if device is not None:
             self.device = device
             self.to(device)
+        scale = float(image_size)/112
+        self.facial_reference_points = get_reference_facial_points(default_square=True) * scale
 
     def forward(self, img, save_path=None, return_prob=False):
         """Run MTCNN face detection on a PIL image or numpy array. This method performs both
@@ -280,6 +282,7 @@ class MTCNN(nn.Module):
                     face_path = save_name + '_' + str(i + 1) + ext
 
                 face = extract_face(im, box, self.image_size, self.margin, face_path)
+
                 if self.post_process:
                     face = fixed_image_standardization(face)
                 faces_im.append(face)
@@ -301,6 +304,58 @@ class MTCNN(nn.Module):
             return faces, probs
         else:
             return faces
+
+    def extract_aligned_face(self, img, return_prob=False):
+        """ function argument and outputs are similar to those in forward function. 
+        But the returned faces are aligned based on detected face landmark points.
+        """
+
+        with torch.no_grad():
+            batch_boxes, batch_probs, batch_landmarks = self.detect(img, landmarks=True)
+
+        # Determine if a batch or single image was passed
+        batch_mode = True
+        if not isinstance(img, (list, tuple)) and not (isinstance(img, np.ndarray) and len(img.shape) == 4):
+            img = [img]
+            batch_boxes = [batch_boxes]
+            batch_probs = [batch_probs]
+            batch_landmarks  = [batch_landmarks]
+            batch_mode = False
+
+        # Process all bounding boxes and probabilities
+        faces, probs = [], []
+        for im, box_im, prob_im, landmarks in zip(img, batch_boxes, batch_probs, batch_landmarks):
+            if box_im is None:
+                faces.append(None)
+                probs.append([None] if self.keep_all else None)
+                continue
+
+            if not self.keep_all:
+                box_im = box_im[[0]]
+
+            faces_im = []
+            for landmark in landmarks:
+                facial5points = landmark
+                face = warp_and_crop_face(np.array(im), facial5points, self.facial_reference_points, crop_size=(self.image_size, self.image_size))
+                faces_im.append(torch.from_numpy(face) )
+
+            if self.keep_all:
+                faces_im = torch.stack(faces_im)
+            else:
+                faces_im = faces_im[0]
+                prob_im = prob_im[0]
+            faces.append(faces_im)
+            probs.append(prob_im)
+
+        if not batch_mode:
+            faces = faces[0]
+            probs = probs[0]
+
+        if return_prob:
+            return faces, probs
+        else:
+            return faces
+
 
     def detect(self, img, landmarks=False):
         """Detect all faces in PIL image and return bounding boxes and optional facial landmarks.
