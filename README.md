@@ -37,6 +37,7 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
 ## Quick start
 
 1. Install:
+    
     ```bash
     # With pip:
     pip install facenet-pytorch
@@ -47,7 +48,9 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     # or use a docker container (see https://github.com/timesler/docker-jupyter-dl-gpu):
     docker run -it --rm timesler/jupyter-dl-gpu pip install facenet-pytorch && ipython
     ```
+    
 1. In python, import facenet-pytorch and instantiate models:
+    
     ```python
     from facenet_pytorch import MTCNN, InceptionResnetV1
     
@@ -57,7 +60,9 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     # Create an inception resnet (in eval mode):
     resnet = InceptionResnetV1(pretrained='vggface2').eval()
     ```
+    
 1. Process an image:
+    
     ```python
     from PIL import Image
     
