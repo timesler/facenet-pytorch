@@ -1,3 +1,4 @@
+[![](data/facenet-pytorch-banner.png)](https://xscode.com/timesler/facenet-pytorch)
 [![Foo](https://xscode.com/assets/promo-banner.svg)](https://xscode.com/timesler/facenet-pytorch)
 
 # Face Recognition Using Pytorch 
@@ -207,7 +208,9 @@ Following instantiation of the pytorch model, each layer's weights were loaded f
 The equivalence of the outputs from the original tensorflow models and the pytorch-ported models have been tested and are identical:
 
 ---
+
 `>>> compare_model_outputs(mdl, sess, torch.randn(5, 160, 160, 3).detach())`
+
 ```
 Passing test data through TF model
 
@@ -228,6 +231,7 @@ tensor([[-0.0142,  0.0615,  0.0057,  ...,  0.0497,  0.0375, -0.0838],
 
 Distance 1.2874517096861382e-06
 ```
+
 ---
 
 In order to re-run the conversion of tensorflow parameters into the pytorch model, ensure you clone this repo _with submodules_, as the davidsandberg/facenet repo is included as a submodule and parts of it are required for the conversion.
