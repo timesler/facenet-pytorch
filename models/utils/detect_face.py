@@ -308,11 +308,18 @@ def imresample(img, sz):
 
 def crop_resize(img, box, image_size):
     if isinstance(img, np.ndarray):
+        img = img[box[1]:box[3], box[0]:box[2]]
         out = cv2.resize(
-            img[box[1]:box[3], box[0]:box[2]],
+            img,
             (image_size, image_size),
             interpolation=cv2.INTER_AREA
         ).copy()
+    elif isinstance(img, torch.Tensor):
+        img = img[box[1]:box[3], box[0]:box[2]]
+        out = imresample(
+            img.permute(2, 0, 1).unsqueeze(0).float(),
+            (image_size, image_size)
+        ).byte().squeeze(0).permute(1, 2, 0)
     else:
         out = img.crop(box).copy().resize((image_size, image_size), Image.BILINEAR)
     return out
@@ -326,7 +333,7 @@ def save_img(img, path):
 
 
 def get_size(img):
-    if isinstance(img, np.ndarray):
+    if isinstance(img, (np.ndarray, torch.Tensor)):
         return img.shape[1::-1]
     else:
         return img.size
