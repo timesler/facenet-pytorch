@@ -1,4 +1,5 @@
 import os
+import csv
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -214,7 +215,6 @@ class InceptionResnetV1(nn.Module):
         elif pretrained is None and self.classify and self.num_classes is None:
             raise Exception('If "pretrained" is not specified and "classify" is True, "num_classes" must be specified')
 
-
         # Define layers
         self.conv2d_1a = BasicConv2d(3, 32, kernel_size=3, stride=2)
         self.conv2d_2a = BasicConv2d(32, 32, kernel_size=3, stride=1)
@@ -260,9 +260,11 @@ class InceptionResnetV1(nn.Module):
         if pretrained is not None:
             self.logits = nn.Linear(512, tmp_classes)
             load_weights(self, pretrained)
+            self.labels = self.load_labels(pretrained)
 
         if self.classify and self.num_classes is not None:
             self.logits = nn.Linear(512, self.num_classes)
+            self.labels = self.load_labels(None)
 
         self.device = torch.device('cpu')
         if device is not None:
@@ -300,6 +302,13 @@ class InceptionResnetV1(nn.Module):
         else:
             x = F.normalize(x, p=2, dim=1)
         return x
+    
+    def load_labels(self, pretrained):
+        if pretrained is not 'vggface2':
+            return None
+        with open(os.path.join(os.path.dirname(__file__), f'../data/labels-vggface2.csv')) as f:
+            labels = [l for l in csv.reader(f)][1:]
+        return labels
 
 
 def load_weights(mdl, name):
