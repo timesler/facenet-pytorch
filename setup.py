@@ -40,5 +40,6 @@ setuptools.setup(
         'requests',
         'torchvision',
         'pillow',
+        'opencv-python'
     ],
 )
