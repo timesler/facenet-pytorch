@@ -391,6 +391,122 @@ class MTCNN(nn.Module):
 
         return boxes, probs
 
+    def select_boxes(self, all_boxes, all_probs, all_points, imgs, method='probability', threshold=.9, center_weight=2.0):
+        """Selects a single box from multiple for a given image using one of multiple heuristics.
+        Arguments:
+                all_boxes {np.ndarray} -- Ix0 ndarray where each element is a Nx4 ndarry of bounding boxes for N detected faces in I images (output from self.detect)
+                all_probs {np.ndarray} -- Ix0 ndarray where each element is a Nx0 ndarry of probabilities for N detected faces in I images (output from self.detect)
+                all_points {np.ndarray} -- Ix0 ndarray where each element is a Nx5x2 array of points for N detected faces. (output from self.detect)
+                imgs {
+        Keyword Arguments:
+                method {str} -- Which heuristic to use for selection:
+                    "probability": highest probability selected
+                    "largest": largest box selected
+                    "largest_over_theshold": largest box over a certain probability threshold selected
+                    "center_weighted_size": box size minus weighted squared offset from image center
+                threshold {float} -- theshold for "largest_over_threshold" method
+                center_weight {float} -- weight for squared offset in center weighted size method
+
+        Returns:
+                tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray) -- Ix4 ndarray of bounding boxes for I images. Ix0 array of probabilities for each box, array of landmark points
+        """
+        selected_boxes, selected_probs, selected_points = [], [], []
+        for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
+            boxes = np.array(boxes)
+            probs = np.array(probs)
+            points = np.array(points)
+            if len(boxes) == 0:
+                selected_boxes.append(None)
+                selected_probs.append([None])
+                selected_points.append(None)
+                continue
+            elif method == 'largest':
+                box_order = np.argsort((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))[::-1]
+            elif method == 'probability':
+                box_order = np.argsort(probs)[::-1]
+            elif method == 'center_weighted_size':
+                box_sizes = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+                img_center = (img.width / 2, img.height/2)
+                box_centers = np.array(list(zip((boxes[:, 0] + boxes[:, 2]) / 2, (boxes[:, 1] + boxes[:, 3]) / 2)))
+                offsets = box_centers - img_center
+                offset_dist_squared = np.sum(np.power(offsets, 2.0), 1)
+                box_order = np.argsort(box_sizes - offset_dist_squared * center_weight)[::-1]
+            elif method == 'largest_over_threshold':
+                box_mask = probs > threshold
+                boxes = boxes[box_mask]
+                box_order = np.argsort((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))[::-1]
+                if sum(box_mask) == 0:
+                    selected_boxes.append(None)
+                    selected_probs.append([None])
+                    selected_points.append(None)
+                    continue
+
+            box = boxes[box_order][[0]]
+            prob = probs[box_order][[0]]
+            point = points[box_order][[0]]
+            selected_boxes.append(box)
+            selected_probs.append(prob)
+            selected_points.append(point)
+
+        selected_boxes = np.array(selected_boxes)
+        selected_probs = np.array(selected_probs)
+        selected_points = np.array(selected_points)
+
+        return selected_boxes, selected_probs, selected_points
+
+    def extract(self, img, batch_boxes, save_path):
+        # Determine if a batch or single image was passed
+        batch_mode = True
+        if (
+                not isinstance(img, (list, tuple)) and
+                not (isinstance(img, np.ndarray) and len(img.shape) == 4) and
+                not (isinstance(img, torch.Tensor) and len(img.shape) == 4)
+        ):
+            img = [img]
+            batch_boxes = [batch_boxes]
+            batch_mode = False
+
+        # Parse save path(s)
+        if save_path is not None:
+            if isinstance(save_path, str):
+                save_path = [save_path]
+        else:
+            save_path = [None for _ in range(len(img))]
+
+        # Process all bounding boxes
+        faces = []
+        for im, box_im, path_im in zip(img, batch_boxes, save_path):
+            if box_im is None:
+                faces.append(None)
+                continue
+
+            if not self.keep_all:
+                box_im = box_im[[0]]
+
+            faces_im = []
+            for i, box in enumerate(box_im):
+                face_path = path_im
+                if path_im is not None and i > 0:
+                    save_name, ext = os.path.splitext(path_im)
+                    face_path = save_name + '_' + str(i + 1) + ext
+
+                face = extract_face(im, box, self.image_size, self.margin, face_path)
+                if self.post_process:
+                    face = fixed_image_standardization(face)
+                faces_im.append(face)
+
+            if self.keep_all:
+                faces_im = torch.stack(faces_im)
+            else:
+                faces_im = faces_im[0]
+
+            faces.append(faces_im)
+
+        if not batch_mode:
+            faces = faces[0]
+
+        return faces
+
 
 def fixed_image_standardization(image_tensor):
     processed_tensor = (image_tensor - 127.5) / 128.0
@@ -403,3 +519,4 @@ def prewhiten(x):
     std_adj = std.clamp(min=1.0/(float(x.numel())**0.5))
     y = (x - mean) / std_adj
     return y
+
