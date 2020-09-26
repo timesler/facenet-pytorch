@@ -220,7 +220,6 @@ class MTCNN(nn.Module):
         if not self.selection_method:
             self.selection_method = 'largest' if self.select_largest else 'probability'
 
-
     def forward(self, img, save_path=None, return_prob=False):
         """Run MTCNN face detection on a PIL image or numpy array. This method performs both
         detection and extraction of faces, returning tensors representing detected faces rather
