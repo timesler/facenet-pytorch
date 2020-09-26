@@ -179,6 +179,11 @@ class MTCNN(nn.Module):
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
             If False, the face with the highest detection probability is returned.
             (default: {True})
+        selection_method {string} -- Which heuristic to use for selection. Default None. If specified, will override select_largest:
+                    "probability": highest probability selected
+                    "largest": largest box selected
+                    "largest_over_theshold": largest box over a certain probability threshold selected
+                    "center_weighted_size": box size minus weighted squared offset from image center
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
             select_largest parameter. If a save_path is specified, the first face is saved to that
             path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
@@ -189,7 +194,7 @@ class MTCNN(nn.Module):
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
-        select_largest=True, keep_all=False, device=None
+        select_largest=True, selection_method=None, keep_all=False, device=None
     ):
         super().__init__()
 
@@ -201,6 +206,7 @@ class MTCNN(nn.Module):
         self.post_process = post_process
         self.select_largest = select_largest
         self.keep_all = keep_all
+        self.selection_method = selection_method
 
         self.pnet = PNet()
         self.rnet = RNet()
@@ -210,6 +216,10 @@ class MTCNN(nn.Module):
         if device is not None:
             self.device = device
             self.to(device)
+
+        if not self.selection_method:
+            self.selection_method = 'largest' if self.select_largest else 'probability'
+
 
     def forward(self, img, save_path=None, return_prob=False):
         """Run MTCNN face detection on a PIL image or numpy array. This method performs both
@@ -243,66 +253,16 @@ class MTCNN(nn.Module):
         """
 
         # Detect faces
-        with torch.no_grad():
-            batch_boxes, batch_probs = self.detect(img)
-
-        # Determine if a batch or single image was passed
-        batch_mode = True
-        if (
-            not isinstance(img, (list, tuple)) and
-            not (isinstance(img, np.ndarray) and len(img.shape) == 4) and
-            not (isinstance(img, torch.Tensor) and len(img.shape) == 4)
-        ):
-            img = [img]
-            batch_boxes = [batch_boxes]
-            batch_probs = [batch_probs]
-            batch_mode = False
-
-        # Parse save path(s)
-        if save_path is not None:
-            if isinstance(save_path, str):
-                save_path = [save_path]
-        else:
-            save_path = [None for _ in range(len(img))]
-        
-        # Process all bounding boxes and probabilities
-        faces, probs = [], []
-        for im, box_im, prob_im, path_im in zip(img, batch_boxes, batch_probs, save_path):
-            if box_im is None:
-                faces.append(None)
-                probs.append([None] if self.keep_all else None)
-                continue
-
-            if not self.keep_all:
-                box_im = box_im[[0]]
-
-            faces_im = []
-            for i, box in enumerate(box_im):
-                face_path = path_im
-                if path_im is not None and i > 0:
-                    save_name, ext = os.path.splitext(path_im)
-                    face_path = save_name + '_' + str(i + 1) + ext
-
-                face = extract_face(im, box, self.image_size, self.margin, face_path)
-                if self.post_process:
-                    face = fixed_image_standardization(face)
-                faces_im.append(face)
-
-            if self.keep_all:
-                faces_im = torch.stack(faces_im)
-            else:
-                faces_im = faces_im[0]
-                prob_im = prob_im[0]
-            
-            faces.append(faces_im)
-            probs.append(prob_im)
-    
-        if not batch_mode:
-            faces = faces[0]
-            probs = probs[0]
+        batch_boxes, batch_probs, batch_points = self.detect(img, landmarks=True)
+        # Select faces
+        if not self.keep_all:
+            batch_boxes, batch_probs, batch_points = self.select_boxes(batch_boxes, batch_probs, batch_points, img,
+                                                                       method=self.selection_method)
+        # Extract faces
+        faces = self.extract(img, batch_boxes, save_path)
 
         if return_prob:
-            return faces, probs
+            return faces, batch_probs
         else:
             return faces
 
