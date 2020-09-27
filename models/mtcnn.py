@@ -369,11 +369,27 @@ class MTCNN(nn.Module):
         Returns:
                 tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray) -- Ix4 ndarray of bounding boxes for I images. Ix0 array of probabilities for each box, array of landmark points
         """
+
+        #copying batch detection from extract, but would be easier to ensure detect creates consistent output.
+        batch_mode = True
+        if (
+                not isinstance(imgs, (list, tuple)) and
+                not (isinstance(imgs, np.ndarray) and len(imgs.shape) == 4) and
+                not (isinstance(imgs, torch.Tensor) and len(imgs.shape) == 4)
+        ):
+            imgs = [imgs]
+            all_boxes = [all_boxes]
+            all_probs = [all_probs]
+            all_points = [all_points]
+            batch_mode = False
+
         selected_boxes, selected_probs, selected_points = [], [], []
         for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
+
             boxes = np.array(boxes)
             probs = np.array(probs)
             points = np.array(points)
+
             if len(boxes) == 0:
                 selected_boxes.append(None)
                 selected_probs.append([None])
@@ -407,9 +423,14 @@ class MTCNN(nn.Module):
             selected_probs.append(prob)
             selected_points.append(point)
 
-        selected_boxes = np.array(selected_boxes)
-        selected_probs = np.array(selected_probs)
-        selected_points = np.array(selected_points)
+        if batch_mode:
+            selected_boxes = np.array(selected_boxes)
+            selected_probs = np.array(selected_probs)
+            selected_points = np.array(selected_points)
+        else:
+            selected_boxes = selected_boxes[0]
+            selected_probs = selected_probs[0][0]
+            selected_points = selected_points[0]
 
         return selected_boxes, selected_probs, selected_points
 
