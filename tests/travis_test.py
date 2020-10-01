@@ -82,6 +82,16 @@ for img, idx in dataset:
     assert (img_box - mtcnn_pt.detect(np.array([np.array(img), np.array(img)]))[0]).sum() < 1e-2
     assert (img_box - mtcnn_pt.detect(torch.as_tensor([np.array(img), np.array(img)]))[0]).sum() < 1e-2
 
+    # Box selection
+    mtcnn_pt.selection_method = 'probability'
+    print('\nprobability - ', mtcnn_pt.detect(img))
+    mtcnn_pt.selection_method = 'largest'
+    print('largest - ', mtcnn_pt.detect(img))
+    mtcnn_pt.selection_method = 'largest_over_theshold'
+    print('largest_over_theshold - ', mtcnn_pt.detect(img))
+    mtcnn_pt.selection_method = 'center_weighted_size'
+    print('center_weighted_size - ', mtcnn_pt.detect(img))
+
     if img_align is not None:
         names.append(name)
         aligned.append(img_align)
