@@ -29,7 +29,7 @@ setuptools.setup(
         'facenet_pytorch.data',
     ],
     package_dir={'facenet_pytorch':'.'},
-    package_data={'': ['*net.pt']},
+    package_data={'': ['*net.pt', 'labels-vggface2.csv']},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
