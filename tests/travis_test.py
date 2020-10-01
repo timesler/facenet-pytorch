@@ -19,10 +19,10 @@ from models.inception_resnet_v1 import InceptionResnetV1, get_torch_home
 
 #### CLEAR ALL OUTPUT FILES ####
 
-# checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
-# for c in checkpoints:
-#     print('Removing {}'.format(c))
-#     os.remove(c)
+checkpoints = glob.glob(os.path.join(get_torch_home(), 'checkpoints/*'))
+for c in checkpoints:
+    print('Removing {}'.format(c))
+    os.remove(c)
 
 crop_files = glob.glob('data/test_images_aligned/**/*.png')
 for c in crop_files:
@@ -34,7 +34,7 @@ for c in crop_files:
 
 os.system('jupyter nbconvert --to script --stdout examples/infer.ipynb examples/finetune.ipynb > examples/tmptest.py')
 os.chdir('examples')
-import examples.tmptest
+import tmptest
 os.chdir('..')
 
 
@@ -57,18 +57,27 @@ trans_cropped = transforms.Compose([
 
 dataset = datasets.ImageFolder('data/test_images', transform=trans)
 dataset.idx_to_class = {k: v for v, k in dataset.class_to_idx.items()}
-loader = DataLoader(dataset, collate_fn=lambda x: x[0])
 
 mtcnn_pt = MTCNN(device=torch.device('cpu'))
 
 names = []
 aligned = []
 aligned_fromfile = []
-for img, idx in loader:
+for img, idx in dataset:
     name = dataset.idx_to_class[idx]
     start = time()
     img_align = mtcnn_pt(img, save_path='data/test_images_aligned/{}/1.png'.format(name))
     print('MTCNN time: {:6f} seconds'.format(time() - start))
+    
+    # Comparison between types
+    img_box = mtcnn_pt.detect(img)[0]
+    assert (img_box - mtcnn_pt.detect(np.array(img))[0]).sum() < 1e-2
+    assert (img_box - mtcnn_pt.detect(torch.as_tensor(np.array(img)))[0]).sum() < 1e-2
+
+    # Batching test
+    assert (img_box - mtcnn_pt.detect([img, img])[0]).sum() < 1e-2
+    assert (img_box - mtcnn_pt.detect(np.array([np.array(img), np.array(img)]))[0]).sum() < 1e-2
+    assert (img_box - mtcnn_pt.detect(torch.as_tensor([np.array(img), np.array(img)]))[0]).sum() < 1e-2
 
     if img_align is not None:
         names.append(name)
