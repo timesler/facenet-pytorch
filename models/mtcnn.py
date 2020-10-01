@@ -179,14 +179,17 @@ class MTCNN(nn.Module):
         select_largest {bool} -- If True, if multiple faces are detected, the largest is returned.
             If False, the face with the highest detection probability is returned.
             (default: {True})
-        selection_method {string} -- Which heuristic to use for selection. Default None. If specified, will override select_largest:
+        selection_method {string} -- Which heuristic to use for selection. Default None. If
+            specified, will override select_largest:
                     "probability": highest probability selected
                     "largest": largest box selected
-                    "largest_over_theshold": largest box over a certain probability threshold selected
+                    "largest_over_theshold": largest box over a certain probability selected
                     "center_weighted_size": box size minus weighted squared offset from image center
+                (default: {None})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
             select_largest parameter. If a save_path is specified, the first face is saved to that
             path and the remaining faces are saved to <save_path>1, <save_path>2 etc.
+            (default: {False})
         device {torch.device} -- The device on which to run neural net passes. Image tensors and
             models are copied to this device before running forward passes. (default: {None})
     """
@@ -226,7 +229,7 @@ class MTCNN(nn.Module):
         than the bounding boxes. To access bounding boxes, see the MTCNN.detect() method below.
         
         Arguments:
-            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, or list.
+            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor, or list.
         
         Keyword Arguments:
             save_path {str} -- An optional save path for the cropped image. Note that when
@@ -255,8 +258,9 @@ class MTCNN(nn.Module):
         batch_boxes, batch_probs, batch_points = self.detect(img, landmarks=True)
         # Select faces
         if not self.keep_all:
-            batch_boxes, batch_probs, batch_points = self.select_boxes(batch_boxes, batch_probs, batch_points, img,
-                                                                       method=self.selection_method)
+            batch_boxes, batch_probs, batch_points = self.select_boxes(
+                batch_boxes, batch_probs, batch_points, img, method=self.selection_method
+            )
         # Extract faces
         faces = self.extract(img, batch_boxes, save_path)
 
@@ -274,7 +278,7 @@ class MTCNN(nn.Module):
         followed by the extract_face() function.
         
         Arguments:
-            img {PIL.Image, np.ndarray, or list} -- A PIL image or a list of PIL images.
+            img {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor, or list.
 
         Keyword Arguments:
             landmarks {bool} -- Whether to return facial landmarks in addition to bounding boxes.
@@ -350,24 +354,35 @@ class MTCNN(nn.Module):
 
         return boxes, probs
 
-    def select_boxes(self, all_boxes, all_probs, all_points, imgs, method='probability', threshold=.9, center_weight=2.0):
+    def select_boxes(
+        self, all_boxes, all_probs, all_points, imgs, method='probability', threshold=0.9,
+        center_weight=2.0
+    ):
         """Selects a single box from multiple for a given image using one of multiple heuristics.
+
         Arguments:
-                all_boxes {np.ndarray} -- Ix0 ndarray where each element is a Nx4 ndarry of bounding boxes for N detected faces in I images (output from self.detect)
-                all_probs {np.ndarray} -- Ix0 ndarray where each element is a Nx0 ndarry of probabilities for N detected faces in I images (output from self.detect)
-                all_points {np.ndarray} -- Ix0 ndarray where each element is a Nx5x2 array of points for N detected faces. (output from self.detect)
-                imgs {
+                all_boxes {np.ndarray} -- Ix0 ndarray where each element is a Nx4 ndarry of
+                    bounding boxes for N detected faces in I images (output from self.detect).
+                all_probs {np.ndarray} -- Ix0 ndarray where each element is a Nx0 ndarry of
+                    probabilities for N detected faces in I images (output from self.detect).
+                all_points {np.ndarray} -- Ix0 ndarray where each element is a Nx5x2 array of
+                    points for N detected faces. (output from self.detect).
+                imgs {PIL.Image, np.ndarray, or list} -- A PIL image, np.ndarray, torch.Tensor, or list.
+
         Keyword Arguments:
                 method {str} -- Which heuristic to use for selection:
                     "probability": highest probability selected
                     "largest": largest box selected
-                    "largest_over_theshold": largest box over a certain probability threshold selected
+                    "largest_over_theshold": largest box over a certain probability selected
                     "center_weighted_size": box size minus weighted squared offset from image center
-                threshold {float} -- theshold for "largest_over_threshold" method
-                center_weight {float} -- weight for squared offset in center weighted size method
+                    (default: {'probability'})
+                threshold {float} -- theshold for "largest_over_threshold" method. (default: {0.9})
+                center_weight {float} -- weight for squared offset in center weighted size method.
+                    (default: {2.0})
 
         Returns:
-                tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray) -- Ix4 ndarray of bounding boxes for I images. Ix0 array of probabilities for each box, array of landmark points
+                tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray) -- nx4 ndarray of bounding boxes
+                    for n images. Ix0 array of probabilities for each box, array of landmark points.
         """
 
         #copying batch detection from extract, but would be easier to ensure detect creates consistent output.
