@@ -400,17 +400,19 @@ class MTCNN(nn.Module):
 
         selected_boxes, selected_probs, selected_points = [], [], []
         for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
-
-            boxes = np.array(boxes)
-            probs = np.array(probs)
-            points = np.array(points)
-
-            if len(boxes) == 0:
+            
+            if boxes is None:
                 selected_boxes.append(None)
                 selected_probs.append([None])
                 selected_points.append(None)
                 continue
-            elif method == 'largest':
+            
+            # If at least 1 box found
+            boxes = np.array(boxes)
+            probs = np.array(probs)
+            points = np.array(points)
+                
+            if method == 'largest':
                 box_order = np.argsort((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))[::-1]
             elif method == 'probability':
                 box_order = np.argsort(probs)[::-1]
