@@ -183,7 +183,7 @@ class MTCNN(nn.Module):
             specified, will override select_largest:
                     "probability": highest probability selected
                     "largest": largest box selected
-                    "largest_over_theshold": largest box over a certain probability selected
+                    "largest_over_threshold": largest box over a certain probability selected
                     "center_weighted_size": box size minus weighted squared offset from image center
                 (default: {None})
         keep_all {bool} -- If True, all detected faces are returned, in the order dictated by the
