@@ -247,7 +247,7 @@ def nms_numpy(boxes, scores, threshold, method):
         h = np.maximum(0.0, yy2 - yy1 + 1).copy()
 
         inter = w * h
-        if method is "Min":
+        if method == 'Min':
             o = inter / np.minimum(area[i], area[idx])
         else:
             o = inter / (area[i] + area[idx] - inter)
