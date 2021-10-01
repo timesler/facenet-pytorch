@@ -265,9 +265,9 @@ class MTCNN(nn.Module):
         faces = self.extract(img, batch_boxes, save_path)
 
         if return_prob:
-            return faces, batch_probs
+            return faces, batch_boxes.squeeze(), batch_probs.squeeze()
         else:
-            return faces
+            return faces, batch_boxes.squeeze()
 
     def detect(self, img, landmarks=False):
         """Detect all faces in PIL image and return bounding boxes and optional facial landmarks.
