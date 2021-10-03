@@ -1,11 +1,11 @@
 import setuptools, os
 
-PACKAGE_NAME = 'facenet-pytorch'
+PACKAGE_NAME = 'facenet-pytorch_itmo_cctv'
 VERSION = '2.5.2'
 AUTHOR = 'Tim Esler'
 EMAIL = 'tim.esler@gmail.com'
 DESCRIPTION = 'Pretrained Pytorch face detection and recognition models'
-GITHUB_URL = 'https://github.com/timesler/facenet-pytorch'
+GITHUB_URL = 'https://github.com/LearningAnalyticsITMO/facenet-pytorch'
 
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 import_name = os.path.basename(parent_dir)
