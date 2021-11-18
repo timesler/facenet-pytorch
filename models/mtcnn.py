@@ -337,7 +337,7 @@ class MTCNN(nn.Module):
                 probs.append(box[:, 4])
                 points.append(point)
         boxes = np.array(boxes, dtype='object')
-        probs = np.array(probs)
+        probs = np.array(probs, dtype='object')
         points = np.array(points, dtype='object')
 
         if (
