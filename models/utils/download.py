@@ -3,9 +3,11 @@ import os
 import shutil
 import sys
 import tempfile
-
+import boto3
+import logging
 from urllib.request import urlopen, Request
 
+logger = logging.Logger(__name__)
 try:
     from tqdm.auto import tqdm  # automatically select proper tqdm submodule if available
 except ImportError:
@@ -55,48 +57,20 @@ def download_url_to_file(url, dst, hash_prefix=None, progress=True):
     Example:
         >>> torch.hub.download_url_to_file('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth', '/tmp/temporary_file')
     """
-    file_size = None
-    # We use a different API for python2 since urllib(2) doesn't recognize the CA
-    # certificates in older Python
-    req = Request(url, headers={"User-Agent": "torch.hub"})
-    u = urlopen(req)
-    meta = u.info()
-    if hasattr(meta, 'getheaders'):
-        content_length = meta.getheaders("Content-Length")
-    else:
-        content_length = meta.get_all("Content-Length")
-    if content_length is not None and len(content_length) > 0:
-        file_size = int(content_length[0])
-
-    # We deliberately save it in a temp file and move it after
-    # download is complete. This prevents a local working checkpoint
-    # being overridden by a broken download.
-    dst = os.path.expanduser(dst)
-    dst_dir = os.path.dirname(dst)
-    f = tempfile.NamedTemporaryFile(delete=False, dir=dst_dir)
-
-    try:
-        if hash_prefix is not None:
-            sha256 = hashlib.sha256()
-        with tqdm(total=file_size, disable=not progress,
-                  unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-            while True:
-                buffer = u.read(8192)
-                if len(buffer) == 0:
-                    break
-                f.write(buffer)
-                if hash_prefix is not None:
-                    sha256.update(buffer)
-                pbar.update(len(buffer))
-
-        f.close()
-        if hash_prefix is not None:
-            digest = sha256.hexdigest()
-            if digest[:len(hash_prefix)] != hash_prefix:
-                raise RuntimeError('invalid hash value (expected "{}", got "{}")'
-                                   .format(hash_prefix, digest))
-        shutil.move(f.name, dst)
-    finally:
-        f.close()
-        if os.path.exists(f.name):
-            os.remove(f.name)
+    session = boto3.session.Session()
+    s3 = session.client(
+        service_name='s3',
+        endpoint_url='https://storage.yandexcloud.net',
+        aws_access_key_id=os.environ['S3_ACCESS_KEY'],
+        aws_secret_access_key=os.environ['S3_SECRET_ACCESS_KEY'],
+        region_name='ru-central1'
+    )
+    splitted_url = url.split('/')
+    bucket_name = splitted_url[-2]
+    key = splitted_url[-1]
+    logger.info("Using cached weights for MTCNN")
+    logger.info("Downloading weights for InceptionResnetV1")
+    get_object_response = s3.get_object(Bucket=bucket_name, Key=key)
+    weights = get_object_response['Body'].read()
+    with open(dst, 'wb') as file:
+        file.write(weights)

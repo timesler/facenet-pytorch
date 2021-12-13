@@ -7,7 +7,6 @@ from torch import nn
 from torch.nn import functional as F
 
 from .utils.download import download_url_to_file
-import boto3
 
 class BasicConv2d(nn.Module):
 
@@ -313,9 +312,9 @@ def load_weights(mdl, name):
         ValueError: If 'pretrained' not equal to 'vggface2' or 'casia-webface'.
     """
     if name == 'vggface2':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
+        path = 'https://storage.yandexcloud.net/cctv-models/20180402-114759-vggface2.pt'
     elif name == 'casia-webface':
-        path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
+        path = 'https://storage.yandexcloud.net/cctv-models/20180408-102900-casia-webface.pt'
     else:
         raise ValueError('Pretrained models only exist for "vggface2" and "casia-webface"')
 
