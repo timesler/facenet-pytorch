@@ -1,6 +1,3 @@
-[![](data/facenet-pytorch-banner.png)](https://xscode.com/timesler/facenet-pytorch)
-[![Foo](https://xscode.com/assets/promo-banner.svg)](https://xscode.com/timesler/facenet-pytorch)
-
 # Face Recognition Using Pytorch 
 [![Downloads](https://pepy.tech/badge/facenet-pytorch)](https://pepy.tech/project/facenet-pytorch)
 
