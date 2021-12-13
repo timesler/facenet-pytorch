@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .utils.download import download_url_to_file
-
+import boto3
 
 class BasicConv2d(nn.Module):
 
