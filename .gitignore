@@ -12,3 +12,4 @@ test.py
 .cache
 .ipython
 .local
+temp_script.py
