@@ -180,7 +180,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         batch_boxes.append(boxes[b_i_inds].copy())
         batch_points.append(points[b_i_inds].copy())
 
-    batch_boxes, batch_points = np.array(batch_boxes), np.array(batch_points)
+    batch_boxes, batch_points = np.array(batch_boxes, dtype=object), np.array(batch_points, dtype=object)
 
     return batch_boxes, batch_points
 
