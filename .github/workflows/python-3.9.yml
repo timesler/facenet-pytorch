@@ -1,4 +1,4 @@
-name: Python package
+name: Python 3.9
 
 on:
   push:
