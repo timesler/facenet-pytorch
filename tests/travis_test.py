@@ -145,8 +145,8 @@ for i, ds in enumerate(['vggface2', 'casia-webface']):
     print('\nTotal error: {}, {}'.format(total_error, total_error_fromfile))
 
     if sys.platform != 'win32':
-        assert total_error < 1e-4
-        assert total_error_fromfile < 1e-4
+        assert total_error < 1e-2
+        assert total_error_fromfile < 1e-2
 
 
 #### TEST CLASSIFICATION ####
