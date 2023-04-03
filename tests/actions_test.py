@@ -1,6 +1,6 @@
 """
-The following code is intended to be run only by travis for continuius intengration and testing
-purposes. For implementation examples see notebooks in the examples folder.
+The following code is intended to be run only by Github actions for continuius intengration and
+testing purposes. For implementation examples see notebooks in the examples folder.
 """
 
 from PIL import Image, ImageDraw
