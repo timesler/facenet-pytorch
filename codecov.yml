@@ -2,3 +2,5 @@ coverage:
   status:
     project: off
     patch: off
+codecov: 
+  token: 1e4f3aaa-9c74-4888-9408-71cc7fcfb64c
