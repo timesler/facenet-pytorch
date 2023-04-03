@@ -30,4 +30,6 @@ jobs:
         python3 --version || python --version
         echo "import tests.actions_test" > test.py
         coverage run --source models,examples test.py && coverage report
-        codecov
+        coverage xml
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
