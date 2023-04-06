@@ -336,9 +336,9 @@ class MTCNN(nn.Module):
                 boxes.append(box[:, :4])
                 probs.append(box[:, 4])
                 points.append(point)
-        boxes = np.array(boxes)
-        probs = np.array(probs)
-        points = np.array(points)
+        boxes = np.array(boxes, dtype=object)
+        probs = np.array(probs, dtype=object)
+        points = np.array(points, dtype=object)
 
         if (
             not isinstance(img, (list, tuple)) and 
