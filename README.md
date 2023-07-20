@@ -1,4 +1,7 @@
 # Face Recognition Using Pytorch 
+
+*You can also read a translated version of this file [in Chinese 简体中文版](README_cn.md).*
+
 [![Downloads](https://pepy.tech/badge/facenet-pytorch)](https://pepy.tech/project/facenet-pytorch)
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/timesler/facenet-pytorch.svg)](https://codecov.io/gh/timesler/facenet-pytorch)
@@ -35,7 +38,7 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
 ## Quick start
 
 1. Install:
-    
+   
     ```bash
     # With pip:
     pip install facenet-pytorch
@@ -48,7 +51,7 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     ```
     
 1. In python, import facenet-pytorch and instantiate models:
-    
+   
     ```python
     from facenet_pytorch import MTCNN, InceptionResnetV1
     
@@ -60,18 +63,18 @@ Also included in this repo is an efficient pytorch implementation of MTCNN for f
     ```
     
 1. Process an image:
-    
+   
     ```python
     from PIL import Image
     
     img = Image.open(<image path>)
-
+    
     # Get cropped and prewhitened image tensor
     img_cropped = mtcnn(img, save_path=<optional save path>)
-
+    
     # Calculate embedding (unsqueeze to add batch dimension)
     img_embedding = resnet(img_cropped.unsqueeze(0))
-
+    
     # Or, if using for VGGFace2 classification
     resnet.classify = True
     img_probs = resnet(img_cropped.unsqueeze(0))
