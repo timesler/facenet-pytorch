@@ -237,9 +237,9 @@ docker run --rm -p 8888:8888
 
 请注意，使用此存储库中的模型不需要此功能，该功能仅依赖于pytorch保存的 `state_dict`。
 
-实例化 pytorch 模型后，每层的权重均从 [davidsandberg/facenet](https://github.com/davidsandberg/facenet) 的预训练张量流模型中的等效层加载。
+实例化 pytorch 模型后，每层的权重均从 [davidsandberg/facenet](https://github.com/davidsandberg/facenet) 的预训练Tensorflow模型中的等效层加载。
 
-原始张量流模型和 pytorch 移植模型的输出的等效性已经过测试并且是相同的：
+原始Tensorflow模型和 pytorch 移植模型的输出的等效性已经过测试并且是相同的：
 
 ---
 
@@ -268,7 +268,7 @@ Distance 1.2874517096861382e-06 （距离1.2874517096861382e-06）
 
 ---
 
-为了重新运行张量流参数到 pytorch 模型的转换，请确保使用子模块克隆此存储库，因为 davidsandberg/facenet 存储库作为子模块包含在内，并且转换需要其中的一部分。
+为了重新运行Tensorflow参数到 pytorch 模型的转换，请确保使用子模块克隆此存储库，因为 davidsandberg/facenet 存储库作为子模块包含在内，并且转换需要其中的一部分。
 
 ## 参考资料
 
