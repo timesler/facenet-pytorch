@@ -1,4 +1,7 @@
 # Face Recognition Using Pytorch 
+
+*You can also read a translated version of this file [in Chinese 简体中文版](README_cn.md).*
+
 [![Downloads](https://pepy.tech/badge/facenet-pytorch)](https://pepy.tech/project/facenet-pytorch)
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/timesler/facenet-pytorch.svg)](https://codecov.io/gh/timesler/facenet-pytorch)
