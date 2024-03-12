@@ -1,10 +1,6 @@
-name: Python 3.9
+name: Python
 
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+on: [pull_request, push, workflow_dispatch]
 
 jobs:
   build:
@@ -13,12 +9,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -27,6 +23,11 @@ jobs:
         pip install -r tests/actions_requirements.txt
     - name: Test with pytest
       run: |
-        python3 --version || python --version
+        python --version
         echo "import tests.actions_test" > test.py
-        coverage run --source models,examples test.py && coverage report
+        coverage run --source models,examples test.py
+        coverage report
+        coverage xml
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: ${{ matrix.python-version == '3.12' }}
