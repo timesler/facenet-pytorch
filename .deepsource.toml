@@ -1,0 +1,9 @@
+version = 1
+
+[[analyzers]]
+name = "python"
+enabled = true
+dependency_file_paths = ["dependencies/facenet/requirements.txt", "setup.py"]
+
+    [analyzers.meta]
+    runtime_version = "3.x.x"

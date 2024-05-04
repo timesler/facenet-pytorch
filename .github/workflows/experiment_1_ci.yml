@@ -1,0 +1,100 @@
+name: Experiment 1 - facenet-pytorch
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions: write-all
+
+jobs:
+  build_application:
+    name: Compile with Python3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5.1.0
+        with:
+          python-version: 3.12
+
+      - name: Install Python Dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -e .
+          pip install setuptools
+
+      - name: Build Python Package
+        shell: bash
+        run: python setup.py build
+
+      - name: Tar Python Build
+        shell: bash
+        run: tar -czf python-build.tgz build
+
+      - name: Upload Maven Build Repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-build
+          path: python-build.tgz
+
+      - name: Create Pip Dependency Tree
+        shell: bash
+        run: |
+          pip install pipdeptree
+          pipdeptree -fl --json > python_dep_tree.json
+
+      - name: Upload Python Dependency Tree Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dependency-tree
+          path: python_dep_tree.json
+
+      - name: Run Python Tests
+        shell: bash
+        run: |
+          pip install -r tests/actions_requirements.txt
+          echo "import tests.actions_test" > test.py
+          coverage run --source models,examples test.py
+
+      - name: Generate Coverage
+        shell: bash
+        run: |
+          coverage report
+          coverage json
+          coverage xml
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage-report
+          path: |
+            coverage.json
+            coverage.xml
+
+  create_sbom:
+    needs: [ build_application ]
+    name: Run SBOM Generation
+    uses: seansmith39/H6060-Experiment-Workflows/.github/workflows/experiment_sbom_generation_python.yml@v1.0.1
+    secrets: inherit
+
+  run_sca_scanning:
+    needs: [ build_application ]
+    name: Run SCA Scanning Workflow
+    uses: seansmith39/H6060-Experiment-Workflows/.github/workflows/experiment_1_sca_python.yml@Optional_Requirements_Installation
+    secrets: inherit
+    with:
+      python-artifact-name: facenet-pytorch
+      python-source-dir: dependencies/facenet
+
+  run_sast_scanning:
+    needs: [ build_application ]
+    name: Run SCA Scanning Workflow
+    uses: seansmith39/H6060-Experiment-Workflows/.github/workflows/experiment_1_sast_python.yml@v1.0.6
+    secrets: inherit
