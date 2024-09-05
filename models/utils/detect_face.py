@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 import os
 import math
+from collections import defaultdict
 
 # OpenCV is optional, but required if using numpy arrays instead of PIL
 try:
@@ -108,9 +109,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
-                im_data.append(imresample(img_k, (24, 24)))
-        im_data = torch.cat(im_data, dim=0)
+                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
+                im_data.append(img_k)
+
+        im_data = batch_resample_by_size(im_data, (24, 24), device)
         im_data = (im_data - 127.5) * 0.0078125
 
         # This is equivalent to out = rnet(im_data) to avoid GPU out of memory.
@@ -137,9 +139,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
-                im_data.append(imresample(img_k, (48, 48)))
-        im_data = torch.cat(im_data, dim=0)
+                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]]
+                im_data.append(img_k)
+
+        im_data = batch_resample_by_size(im_data, (48, 48), device)
         im_data = (im_data - 127.5) * 0.0078125
         
         # This is equivalent to out = onet(im_data) to avoid GPU out of memory.
@@ -304,6 +307,45 @@ def rerec(bboxA):
 def imresample(img, sz):
     im_data = interpolate(img, size=sz, mode="area")
     return im_data
+
+
+def batch_resample_by_size(imgs, target_size, device):
+    """
+        Batch resampling function grouping by size while preserving order.
+
+        Args:
+            imgs (list of torch.Tensor): List of image tensors
+            target_size (tuple): Target size for resampling (height, width)
+            device (torch.device): Device to perform computation on
+
+        Returns:
+            torch.Tensor: Batch of resampled images in original order
+    """
+    if not imgs:
+        return torch.zeros((0, 3, target_size[0], target_size[1]), device=device)
+
+    # Group images by size
+    size_groups = defaultdict(list)
+    size_to_indices = defaultdict(list)
+    for i, img in enumerate(imgs):
+        size = tuple(img.shape[1:])
+        size_groups[size].append(img)
+        size_to_indices[size].append(i)
+
+    resampled_imgs = torch.zeros(len(imgs), 3, target_size[0], target_size[1], device=device)
+
+    for size, group in size_groups.items():
+        # Stack images of the same size
+        batch = torch.stack(group).to(device)
+
+        # Perform batch resample
+        resampled = interpolate(batch, size=target_size, mode='area')
+
+        # Put resampled images back in their original positions
+        for resampled_img, original_idx in zip(resampled, size_to_indices[size]):
+            resampled_imgs[original_idx] = resampled_img
+
+    return resampled_imgs
 
 
 def crop_resize(img, box, image_size):
