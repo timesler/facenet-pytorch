@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "facenet-pytorch"
+version = "2.5.3"
+description = "Pretrained Pytorch face detection and recognition models"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Tim Esler", email = "tim.esler@gmail.com" },
+    { name = "Vitthal Gupta", email = "vitthal.gupta@pi-labs.ai"}
+]
+license = { text = "MIT" }
+urls = { Homepage = "https://github.com/timesler/facenet-pytorch" }
+
+dependencies = [
+    "numpy>=1.24.0,<2.0.0",
+    "Pillow>=10.2.0,<10.3.0",
+    "requests>=2.0.0,<3.0.0",
+    "torch>=2.2.2",
+    "torchvision==0.22.1",
+    "tqdm>=4.0.0,<5.0.0",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools]
+package-dir = { "facenet_pytorch" = "." }
+
+[tool.setuptools.packages.find]
+include = ["facenet_pytorch", "facenet_pytorch.models", "facenet_pytorch.models.utils", "facenet_pytorch.data"]
+
+[tool.setuptools.package-data]
+facenet_pytorch = ["*net.pt"]
+
+[tool.uv]
+link-mode = "copy"
+compile-bytecode = true
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+]

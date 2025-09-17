@@ -13,21 +13,23 @@ try:
 except:
     pass
 
+
 def fixed_batch_process(im_data, model):
     batch_size = 512
     out = []
     for i in range(0, len(im_data), batch_size):
-        batch = im_data[i:(i+batch_size)]
+        batch = im_data[i : (i + batch_size)]
         out.append(model(batch))
 
     return tuple(torch.cat(v, dim=0) for v in zip(*out))
 
+
 def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     if isinstance(imgs, (np.ndarray, torch.Tensor)):
-        if isinstance(imgs,np.ndarray):
+        if isinstance(imgs, np.ndarray):
             imgs = torch.as_tensor(imgs.copy(), device=device)
 
-        if isinstance(imgs,torch.Tensor):
+        if isinstance(imgs, torch.Tensor):
             imgs = torch.as_tensor(imgs, device=device)
 
         if len(imgs.shape) == 3:
@@ -36,11 +38,11 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         if not isinstance(imgs, (list, tuple)):
             imgs = [imgs]
         if any(img.size != imgs[0].size for img in imgs):
-            raise Exception("MTCNN batch processing only compatible with equal-dimension images.")
+            raise Exception(
+                "MTCNN batch processing only compatible with equal-dimension images."
+            )
         imgs = np.stack([np.uint8(img) for img in imgs])
         imgs = torch.as_tensor(imgs.copy(), device=device)
-
-    
 
     model_dtype = next(pnet.parameters()).dtype
     imgs = imgs.permute(0, 3, 1, 2).type(model_dtype)
@@ -71,8 +73,10 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = imresample(imgs, (int(h * scale + 1), int(w * scale + 1)))
         im_data = (im_data - 127.5) * 0.0078125
         reg, probs = pnet(im_data)
-    
-        boxes_scale, image_inds_scale = generateBoundingBox(reg, probs[:, 1], scale, threshold[0])
+
+        boxes_scale, image_inds_scale = generateBoundingBox(
+            reg, probs[:, 1], scale, threshold[0]
+        )
         boxes.append(boxes_scale)
         image_inds.append(image_inds_scale)
 
@@ -88,7 +92,6 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     # NMS within each scale + image
     boxes, image_inds = boxes[scale_picks], image_inds[scale_picks]
 
-
     # NMS within each image
     pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
     boxes, image_inds = boxes[pick], image_inds[pick]
@@ -102,13 +105,15 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
     boxes = torch.stack([qq1, qq2, qq3, qq4, boxes[:, 4]]).permute(1, 0)
     boxes = rerec(boxes)
     y, ey, x, ex = pad(boxes, w, h)
-    
+
     # Second stage
     if len(boxes) > 0:
         im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                img_k = imgs[
+                    image_inds[k], :, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]
+                ].unsqueeze(0)
                 im_data.append(imresample(img_k, (24, 24)))
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
@@ -137,11 +142,13 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         im_data = []
         for k in range(len(y)):
             if ey[k] > (y[k] - 1) and ex[k] > (x[k] - 1):
-                img_k = imgs[image_inds[k], :, (y[k] - 1):ey[k], (x[k] - 1):ex[k]].unsqueeze(0)
+                img_k = imgs[
+                    image_inds[k], :, (y[k] - 1) : ey[k], (x[k] - 1) : ex[k]
+                ].unsqueeze(0)
                 im_data.append(imresample(img_k, (48, 48)))
         im_data = torch.cat(im_data, dim=0)
         im_data = (im_data - 127.5) * 0.0078125
-        
+
         # This is equivalent to out = onet(im_data) to avoid GPU out of memory.
         out = fixed_batch_process(im_data, onet)
 
@@ -165,7 +172,7 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
 
         # NMS within each image using "Min" strategy
         # pick = batched_nms(boxes[:, :4], boxes[:, 4], image_inds, 0.7)
-        pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, 'Min')
+        pick = batched_nms_numpy(boxes[:, :4], boxes[:, 4], image_inds, 0.7, "Min")
         boxes, image_inds, points = boxes[pick], image_inds[pick], points[pick]
 
     boxes = boxes.cpu().numpy()
@@ -180,7 +187,9 @@ def detect_face(imgs, minsize, pnet, rnet, onet, threshold, factor, device):
         batch_boxes.append(boxes[b_i_inds].copy())
         batch_points.append(points[b_i_inds].copy())
 
-    batch_boxes, batch_points = np.array(batch_boxes, dtype=object), np.array(batch_points, dtype=object)
+    batch_boxes, batch_points = np.array(batch_boxes, dtype=object), np.array(
+        batch_points, dtype=object
+    )
 
     return batch_boxes, batch_points
 
@@ -247,7 +256,7 @@ def nms_numpy(boxes, scores, threshold, method):
         h = np.maximum(0.0, yy2 - yy1 + 1).copy()
 
         inter = w * h
-        if method == 'Min':
+        if method == "Min":
             o = inter / np.minimum(area[i], area[idx])
         else:
             o = inter / (area[i] + area[idx] - inter)
@@ -292,7 +301,7 @@ def pad(boxes, w, h):
 def rerec(bboxA):
     h = bboxA[:, 3] - bboxA[:, 1]
     w = bboxA[:, 2] - bboxA[:, 0]
-    
+
     l = torch.max(w, h)
     bboxA[:, 0] = bboxA[:, 0] + w * 0.5 - l * 0.5
     bboxA[:, 1] = bboxA[:, 1] + h * 0.5 - l * 0.5
@@ -308,18 +317,20 @@ def imresample(img, sz):
 
 def crop_resize(img, box, image_size):
     if isinstance(img, np.ndarray):
-        img = img[box[1]:box[3], box[0]:box[2]]
+        img = img[box[1] : box[3], box[0] : box[2]]
         out = cv2.resize(
-            img,
-            (image_size, image_size),
-            interpolation=cv2.INTER_AREA
+            img, (image_size, image_size), interpolation=cv2.INTER_AREA
         ).copy()
     elif isinstance(img, torch.Tensor):
-        img = img[box[1]:box[3], box[0]:box[2]]
-        out = imresample(
-            img.permute(2, 0, 1).unsqueeze(0).float(),
-            (image_size, image_size)
-        ).byte().squeeze(0).permute(1, 2, 0)
+        img = img[box[1] : box[3], box[0] : box[2]]
+        out = (
+            imresample(
+                img.permute(2, 0, 1).unsqueeze(0).float(), (image_size, image_size)
+            )
+            .byte()
+            .squeeze(0)
+            .permute(1, 2, 0)
+        )
     else:
         out = img.crop(box).copy().resize((image_size, image_size), Image.BILINEAR)
     return out
@@ -341,17 +352,17 @@ def get_size(img):
 
 def extract_face(img, box, image_size=160, margin=0, save_path=None):
     """Extract face + margin from PIL Image given bounding box.
-    
+
     Arguments:
         img {PIL.Image} -- A PIL Image.
         box {numpy.ndarray} -- Four-element bounding box.
         image_size {int} -- Output image size in pixels. The image will be square.
-        margin {int} -- Margin to add to bounding box, in terms of pixels in the final image. 
+        margin {int} -- Margin to add to bounding box, in terms of pixels in the final image.
             Note that the application of the margin differs slightly from the davidsandberg/facenet
             repo, which applies the margin to the original image before resizing, making the margin
             dependent on the original image size.
         save_path {str} -- Save path for extracted face image. (default: {None})
-    
+
     Returns:
         torch.tensor -- tensor representing the extracted face.
     """

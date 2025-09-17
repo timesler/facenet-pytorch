@@ -7,7 +7,7 @@ import time
 
 
 def main():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f'Running on device "{device}"')
 
     mtcnn = MTCNN(device=device)
@@ -16,8 +16,7 @@ def main():
 
     # Generate data loader
     ds = datasets.ImageFolder(
-        root='data/test_images/',
-        transform=transforms.Resize((512, 512))
+        root="data/test_images/", transform=transforms.Resize((512, 512))
     )
     dl = DataLoader(
         dataset=ds,
@@ -32,8 +31,8 @@ def main():
     for x, _ in tqdm(dl):
         faces.extend(mtcnn(x))
     elapsed = time.time() - start
-    print(f'Elapsed: {elapsed} | EPS: {len(dl) * batch_size / elapsed}')
+    print(f"Elapsed: {elapsed} | EPS: {len(dl) * batch_size / elapsed}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

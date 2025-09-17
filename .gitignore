@@ -12,3 +12,5 @@ test.py
 .cache
 .ipython
 .local
+uv.lock
+.venv/
